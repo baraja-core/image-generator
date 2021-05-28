@@ -113,7 +113,7 @@ final class Image
 			. '/' . $request->getBasename()
 			. '.' . $request->getExtension();
 
-		$absoluteFileDirPath = (string)preg_replace(
+		$absoluteFileDirPath = (string) preg_replace(
 			'@/+@',
 			'/',
 			$this->rootDir . '/www/' . str_replace(
@@ -127,10 +127,10 @@ final class Image
 		if (is_dir($absoluteFileDirPath) === true) {
 			foreach (scandir($absoluteFileDirPath, 1) ?: [] as $item) {
 				if (
-					(string)preg_replace('@\.(?<extension>[a-zA-Z]+)$@', '', $item) === $request->getBasename()
+					(string) preg_replace('@\.(?<extension>[a-zA-Z]+)$@', '', $item) === $request->getBasename()
 					&& (!$absoluteFilePath || str_ends_with($item, $request->getExtension()))
 				) {
-					$absoluteFilePath = (string)preg_replace(
+					$absoluteFilePath = (string) preg_replace(
 						'@/+@',
 						'/',
 						$this->rootDir . '/www/'
@@ -185,9 +185,9 @@ final class Image
 
 		$cachePath = '_cache/' . $fileSuffix;
 		$tempPath = '_cache/_temp/' . $fileSuffix;
-		$absoluteTempPath = $this->rootDir . '/www/' . str_replace(
-				$request->getBasename() . '.'
-				. $request->getExtension(),
+		$absoluteTempPath = $this->rootDir . '/www/'
+			. str_replace(
+				$request->getBasename() . '.' . $request->getExtension(),
 				'',
 				$tempPath,
 			);
@@ -203,8 +203,8 @@ final class Image
 
 		if ($absoluteFilePath) {
 			$this->sourcePath = $absoluteFilePath;
-			$this->tempPath = (string)preg_replace('@/+@', '/', $absoluteTempFilePath);
-			$this->cachePath = (string)preg_replace('@/+@', '/', $absoluteCacheFilePath);
+			$this->tempPath = (string) preg_replace('@/+@', '/', $absoluteTempFilePath);
+			$this->cachePath = (string) preg_replace('@/+@', '/', $absoluteCacheFilePath);
 		} else {
 			throw new \ErrorException(
 				'Source file "' . $filePath . '" does not exist.'
@@ -237,7 +237,7 @@ final class Image
 			]
 		);
 
-		$return = (string)curl_exec($ch);
+		$return = (string) curl_exec($ch);
 		$httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
 
@@ -325,8 +325,8 @@ final class Image
 
 	private function prepareCacheAndTempDir(string $tempPath, string $cachePath): void
 	{
-		$this->createDir((string)preg_replace('/\/[a-zA-Z0-9-_.]+$/', '', $tempPath));
-		$this->createDir((string)preg_replace('/\/[a-zA-Z0-9-_.]+$/', '', $cachePath));
+		$this->createDir((string) preg_replace('/\/[a-zA-Z0-9-_.]+$/', '', $tempPath));
+		$this->createDir((string) preg_replace('/\/[a-zA-Z0-9-_.]+$/', '', $cachePath));
 	}
 
 
@@ -353,11 +353,13 @@ final class Image
 		@ini_set('memory_limit', '256M');
 		$defaultColor = $this->config->getDefaultBackgroundColor();
 
+		/** @var \GdImage $src */
 		$src = imagecreatefrompng($path);
-		$width = imagesx($src);
-		$height = imagesy($src);
+		$width = (int) imagesx($src);
+		$height = (int) imagesy($src);
+		/** @var \GdImage $bg */
 		$bg = imagecreatetruecolor($width, $height);
-		$white = imagecolorallocate($bg, $defaultColor[0], $defaultColor[1], $defaultColor[2]);
+		$white = (int) imagecolorallocate($bg, $defaultColor[0], $defaultColor[1], $defaultColor[2]);
 		imagefill($bg, 0, 0, $white);
 		imagecopyresampled($bg, $src, 0, 0, 0, 0, $width, $height, $width, $height);
 		imagepng($bg, $path, 0);
@@ -380,7 +382,8 @@ final class Image
 	private function findSimilarImageBySameHash(): void
 	{
 		$md5CacheFile = md5_file($this->cachePath);
-		foreach (scandir(($pathInfo = pathinfo($this->cachePath))['dirname'], 1) ?: [] as $item) {
+		$pathInfo = pathinfo($this->cachePath);
+		foreach (scandir($pathInfo['dirname'], 1) ?: [] as $item) {
 			if (
 				preg_match(
 					'/^(?<filename>.+)(?<suffix>_(?<md5>.{32})\.md5)$/',
@@ -404,7 +407,7 @@ final class Image
 	/** Safe create dir and fix permissions. */
 	private function createDir(string $path): void
 	{
-		if (\is_dir($path) === true) {
+		if (is_dir($path) === true) {
 			$this->fixDirPerms($path);
 
 			return;
@@ -413,7 +416,7 @@ final class Image
 		$parts = [];
 		$partPath = $path;
 		while (true) {
-			if (\is_dir($partPath) === false) {
+			if (is_dir($partPath) === false) {
 				$parts[] = $partPath;
 				$partPath = dirname($partPath);
 			} else {

@@ -10,11 +10,10 @@ use Nette\Http\Request;
 
 final class Helper
 {
-
 	/** @throws \Error */
 	public function __construct()
 	{
-		throw new \Error('Class ' . get_class($this) . ' is static and cannot be instantiated.');
+		throw new \Error('Class ' . static::class . ' is static and cannot be instantiated.');
 	}
 
 
@@ -29,7 +28,7 @@ final class Helper
 		$return = '';
 		for ($i = 0; isset($hash[$i]) === true; $i++) {
 			if ($i > 1) {
-				$return .= chr((int)round((ord($hash[$i]) + ord($hash[$i - 1])) / 2));
+				$return .= chr((int) round((ord($hash[$i]) + ord($hash[$i - 1])) / 2));
 			}
 		}
 		while (strlen($return) < 12) {
@@ -56,7 +55,7 @@ final class Helper
 	 *
 	 * @sample '/images/forest.jpg'
 	 */
-	public static function invalidateCache(string $path, ?string $wwwDir = null, $recursive = false): int
+	public static function invalidateCache(string $path, ?string $wwwDir = null, bool $recursive = false): int
 	{
 		if (preg_match('/\.\./', $path)) {
 			throw new \InvalidArgumentException('Path "' . $path . '" could not contains \'..\'.');
@@ -78,6 +77,7 @@ final class Helper
 		$cachePathDirName = is_file($wwwDir . $path) ? dirname($cachePath) : $cachePath;
 		$files = [];
 		if (preg_match('/(?<baseName>[^\/]+)\.[^.]+$/', $cachePath, $cachePathWithoutSuffix)) {
+			/** @phpstan-ignore-next-line */
 			foreach (glob($cachePathDirName . '/' . $cachePathWithoutSuffix['baseName'] . '*') as $filePath) {
 				$files[] = $filePath;
 			}
@@ -88,6 +88,7 @@ final class Helper
 				}
 			}
 		} else {
+			/** @phpstan-ignore-next-line */
 			foreach (glob($cachePathDirName . '/*.*') as $filePath) {
 				$files[] = $filePath;
 			}
@@ -152,20 +153,15 @@ final class Helper
 			if (self::userIp() === '127.0.0.1') {
 				return $is = true;
 			}
-			$url = Url::get()->getCurrentUrl();
-			if ($url !== null) {
-				$localHosts = ['localhost', '[^\/]+\.l', '127\.0\.0\.1'];
-				$allowedPorts = ['80', '443', '3000'];
-				$is = (bool)preg_match(
-					'/^https?:\/\/(' . implode('|', $localHosts) . ')(:(?:' . implode(
-						'|',
-						$allowedPorts
-					) . '))?(?:\/|$)/',
-					$url,
-				);
-			} else {
-				$is = false;
-			}
+			$localHosts = ['localhost', '[^\/]+\.l', '127\.0\.0\.1'];
+			$allowedPorts = ['80', '443', '3000'];
+			$is = (bool) preg_match(
+				'/^https?:\/\/(' . implode('|', $localHosts) . ')(:(?:' . implode(
+					'|',
+					$allowedPorts
+				) . '))?(?:\/|$)/',
+				Url::get()->getCurrentUrl(),
+			);
 		}
 
 		return $is;
@@ -175,7 +171,6 @@ final class Helper
 	public static function userIp(): string
 	{
 		static $ip = null;
-
 		if ($ip === null) {
 			if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) { // Cloudflare support
 				$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
@@ -209,10 +204,10 @@ final class Helper
 		$lastError = error_get_last();
 		if ($lastError && isset($lastError['message'])) {
 			return trim(
-				(string)preg_replace(
+				(string) preg_replace(
 					'/\s*\[<a[^>]+>[a-z0-9.\-_()]+<\/a>]\s*/i',
 					' ',
-					(string)$lastError['message'],
+					(string) $lastError['message'],
 				),
 			);
 		}
@@ -227,7 +222,7 @@ final class Helper
 		if (\function_exists($functionName) === true) {
 			$disableFunctions = ini_get('disable_functions');
 			if ($disabled === null && $disableFunctions) {
-				$disabled = explode(',', $disableFunctions) ?: [];
+				$disabled = explode(',', $disableFunctions);
 			}
 
 			return \in_array($functionName, $disabled, true) === false;
@@ -259,7 +254,7 @@ final class Helper
 
 		$fileCapture = '';
 		if (is_file($file) === true) {
-			$fileParser = explode("\n", str_replace(["\r\n", "\r"], "\n", (string)file_get_contents($file)));
+			$fileParser = explode("\n", str_replace(["\r\n", "\r"], "\n", (string) file_get_contents($file)));
 			$start = $line > 8 ? $line - 8 : 0;
 
 			for ($i = $start; $i <= $start + 15; $i++) {

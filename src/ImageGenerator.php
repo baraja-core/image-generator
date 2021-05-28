@@ -6,6 +6,8 @@ namespace Baraja\ImageGenerator;
 
 
 use Baraja\ImageGenerator\Entity\MaxSizeForCropEntity;
+use Baraja\ImageGenerator\Optimizer\DefaultOptimizer;
+use Baraja\ImageGenerator\Optimizer\Optimizer;
 use Baraja\Url\Url;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
@@ -15,12 +17,19 @@ final class ImageGenerator
 {
 	private ImageGeneratorRequest $request;
 
+	private Optimizer $optimizer;
+
+	private SmartCrop $smartCrop;
+
 	private string $targetPath;
 
 
 	public function __construct(
 		private Config $config,
+		?Optimizer $optimizer = null,
 	) {
+		$this->optimizer = $optimizer ?? new DefaultOptimizer;
+		$this->smartCrop = new SmartCrop($this);
 	}
 
 
@@ -71,7 +80,7 @@ final class ImageGenerator
 
 		$this->copySourceFileToTemp(
 			$sourceFile,
-			$tempFile = (string)preg_replace('/(.+?)(\.\w+)$/', '$1_temp$2', $targetFile)
+			$tempFile = (string) preg_replace('/(.+?)(\.\w+)$/', '$1_temp$2', $targetFile)
 		);
 
 		if ($this->request->isBreakPoint()) {
@@ -86,12 +95,12 @@ final class ImageGenerator
 				],
 			);
 		} elseif ($this->request->getCrop()) {
-			if ($this->request->getCrop() === 'sm') {
+			if ($this->request->getCrop() === ImageGeneratorRequest::CROP_SMART) {
 				$this->cropSmart($tempFile, $this->request->getWidth(), $this->request->getHeight());
 			} else {
 				$this->cropNette(
 					$tempFile,
-					(string)$this->request->getCrop(),
+					(string) $this->request->getCrop(),
 					[
 						$this->request->getWidth(),
 						$this->request->getHeight(),
@@ -102,8 +111,8 @@ final class ImageGenerator
 			$this->percentagesShift(
 				$tempFile,
 				[
-					'px' => (int)$this->request->getPx(),
-					'py' => (int)$this->request->getPy(),
+					'px' => (int) $this->request->getPx(),
+					'py' => (int) $this->request->getPy(),
 				],
 				[
 					$this->request->getWidth(),
@@ -114,7 +123,10 @@ final class ImageGenerator
 			$this->cropSmart($tempFile, $this->request->getWidth(), $this->request->getHeight());
 		}
 
-		$this->optimizeImage($tempFile);
+		$this->optimizer->optimize(
+			$tempFile,
+			$this->request->getWidth() * $this->request->getHeight() > 479999 ? 85 : 95,
+		);
 
 		if ($this->isOk($tempFile)) {
 			FileSystem::rename($tempFile, $targetFile);
@@ -137,11 +149,13 @@ final class ImageGenerator
 				'image/jpeg' => 'jpg',
 			];
 
-			if (isset($formatMap[$contentType = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $path)]) === false) {
+			/** @var resource $fInfo */
+			$fInfo = finfo_open(FILEINFO_MIME_TYPE);
+			$contentType = (string) finfo_file($fInfo, $path);
+			if (isset($formatMap[$contentType]) === false) {
 				return false;
 			}
-
-			$format = $formatMap[$contentType] ?? null;
+			$format = $formatMap[$contentType];
 		}
 		$formatToFunction = [
 			'png' => 'imagecreatefrompng',
@@ -153,17 +167,33 @@ final class ImageGenerator
 		$format = strtolower($format);
 		if (isset($formatToFunction[$format]) === false) {
 			throw new \InvalidArgumentException(
-				'Format "' . $format . '" is not supported. Did you mean "' . implode(
-					'", "',
-					array_keys($formatToFunction)
-				) . '"?'
+				'Format "' . $format . '" is not supported. Did you mean "'
+				. implode('", "', array_keys($formatToFunction))
+				. '"?',
 			);
 		}
 		if (Helper::functionIsAvailable($function = $formatToFunction[$format]) === false) {
 			throw new \RuntimeException('Function "' . $function . '" is not available now.');
 		}
 
-		return (bool)@$function($path);
+		return (bool) @$function($path);
+	}
+
+
+	/**
+	 * @param array<int, int> $size
+	 */
+	public function cropNette(string $path, string $crop, array $size): void
+	{
+		[$width, $height] = $size;
+
+		$this->cropByCorner(
+			$image = $this->loadNetteImage($path),
+			$crop,
+			[$image->getWidth(), $image->getHeight()],
+			[$width, $height]
+		);
+		$this->saveNetteImage($path, $image);
 	}
 
 
@@ -218,6 +248,12 @@ final class ImageGenerator
 		$bX = abs($cropPoints[$breakPoint][2] - $cropPoints[$breakPoint][0]);
 		$bY = abs($cropPoints[$breakPoint][3] - $cropPoints[$breakPoint][1]);
 
+		/**
+		 * @var int $aX
+		 * @var int $aY
+		 * @var int $bX
+		 * @var int $bY
+		 */
 		$this->saveNetteImage($absolutePath, $this->loadNetteImage($absolutePath)->crop($aX, $aY, $bX, $bY));
 	}
 
@@ -243,22 +279,22 @@ final class ImageGenerator
 
 
 	/**
-	 * @param array<int, int|null> $size
+	 * @param array{0: int|null, 1: int|null} $size
 	 */
 	private function scale(string $absolutePath, string $scale, array $size): void
 	{
 		[$width, $height] = $size;
 
-		if ($scale === 'r') {
+		if ($scale === ImageGeneratorRequest::SCALE_RATIO) {
+			/** @var array{0: int, 1: int} $imageSize */
 			$imageSize = getimagesize($absolutePath);
-			if ($width === null || $height === null) {
-				if ($width === null) {
-					$needleRatio = $imageSize[0] / $imageSize[1];
-					$width = (int)($needleRatio * $height);
-				} else {
-					$needleRatio = $imageSize[1] / $imageSize[0];
-					$height = (int)($needleRatio * $width);
-				}
+			if ($width === null) {
+				$needleRatio = $imageSize[0] / $imageSize[1];
+				$width = (int) ($needleRatio * $height);
+			}
+			if ($height === null) {
+				$needleRatio = $imageSize[1] / $imageSize[0];
+				$height = (int) ($needleRatio * $width);
 			}
 
 			if (
@@ -274,150 +310,79 @@ final class ImageGenerator
 						->resize($width, $height),
 				);
 			}
-		} elseif ($scale === 'c') {
+		} elseif ($scale === ImageGeneratorRequest::SCALE_COVER) {
 			$this->saveNetteImage(
 				$absolutePath,
 				$this->loadNetteImage($absolutePath)
 					->resize($width, $height, Image::EXACT),
 			);
-		} elseif ($scale === 'a') {
+		} elseif ($scale === ImageGeneratorRequest::SCALE_ABSOLUTE) {
 			$this->saveNetteImage(
 				$absolutePath,
 				$this->loadNetteImage($absolutePath)
 					->resize(
-					$width,
-					$height,
-					Image::SHRINK_ONLY | Image::STRETCH
-				),
+						$width,
+						$height,
+						Image::SHRINK_ONLY | Image::STRETCH
+					),
 			);
 		}
-	}
-
-
-	private function shellExec(string $command): string
-	{
-		if (Helper::functionIsAvailable('shell_exec') === false) {
-			return '';
-		}
-
-		return (string)@shell_exec($command . ' 2>&1');
 	}
 
 
 	private function cropSmart(string $path, ?int $width, ?int $height): void
 	{
 		$image = $this->loadNetteImage($path);
-
-		if ($width && !$height) {
-			$height = $width;
-		}
-		if (!$width && $height) {
-			$width = $height;
-		}
-		if (!$width && !$height) {
-			$width = 150;
-			$height = 150;
-		}
-
-		if ($width <= $image->getWidth() || $height <= $image->getHeight()) {
-			$smartCropPath = null;
-			foreach (['/usr/bin/smartcrop', '/usr/sbin/smartcrop', '/usr/local/node/bin/smartcrop'] as $s) {
-				if (@\is_file($s)) { // may do not have permissions
-					$smartCropPath = $s;
-					break;
-				}
-			}
-
-			if ($smartCropPath !== null) {
-				$commandResult = $this->shellExec(
-					$smartCropPath . ' ' . $path
-					. ($width ? ' --width ' . $width : '')
-					. ($height ? ' --height ' . $height : '')
-					. ' ' . $path
-				);
-
-				if (
-					$commandResult
-					&& (
-						str_contains($commandResult, 'Error')
-						|| str_contains($commandResult, 'Exception')
-					)
-				) {
-					throw new \RuntimeException('Smartcrop unable to generate image.');
-				}
-			} else {
-				$this->cropNette($path, 'mc', [$width, $height]);
-				// TODO: Implement SmartCrop!
-			}
-		}
+		$this->smartCrop->crop($path, $width, $height, $image);
 	}
 
 
 	/**
-	 * @param array<int, int|null> $size
-	 */
-	private function cropNette(string $path, string $crop, array $size): void
-	{
-		[$width, $height] = $size;
-
-		$this->cropByCorner(
-			$image = $this->loadNetteImage($path),
-			$crop,
-			[$image->getWidth(), $image->getHeight()],
-			[$width, $height]
-		);
-		$this->saveNetteImage($path, $image);
-	}
-
-
-	/**
-	 * @param string $corner /^[tmb][lcr]$/
-	 * @param int[] $original
-	 * @param array<int, int|null> $needle
+	 * @param array<int, int> $original
+	 * @param array<int, int> $needle
 	 */
 	private function cropByCorner(Image $image, string $corner, array $original, array $needle): void
 	{
+		$corner = strtolower($corner);
+		if (preg_match('/^([tmb])([lcr])$/', $corner, $cornerParser)) {
+			$leftCrop = $cornerParser[0] ?? 'm';
+			$topCrop = $cornerParser[1] ?? 'c';
+		} else {
+			throw new \InvalidArgumentException('Corner "' . $corner . '" is not in valid format.');
+		}
+
 		[$originalWidth, $originalHeight] = $original;
 		[$needleWidth, $needleHeight] = $needle;
 
-		$resize = $this->getMaxSizeForCrop([$originalWidth, $originalHeight], [$needleWidth, $needleHeight]);
+		$resize = $this->getMaxSizeForCrop(
+			[$originalWidth, $originalHeight],
+			[$needleWidth, $needleHeight],
+		);
 
-		if ($needleWidth <= $originalWidth && $needleHeight <= $originalHeight) {
-			$left = 0;
-			$top = 0;
-
-			switch ($corner[0]) {
-				case 't':
-					$top = 0;
-					break;
-
-				case 'm':
-					$top = (int)round(($originalHeight - $resize->getNeedleHeight()) / 2);
-					break;
-
-				case 'b':
-					$top = (int)round($originalHeight - $resize->getNeedleHeight());
-					break;
+		if (
+			$needleWidth <= $originalWidth
+			&& $needleHeight <= $originalHeight
+		) {
+			if ($leftCrop === 'm') {
+				$top = (int) round(($originalHeight - $resize->getNeedleHeight()) / 2);
+			} elseif ($leftCrop === 'b') {
+				$top = (int) round($originalHeight - $resize->getNeedleHeight());
+			} else {
+				$top = 0;
 			}
 
-			switch ($corner[1]) {
-				case 'l':
-					$left = 0;
-					break;
-
-				case 'c':
-					$left = (int)round(($originalWidth - $resize->getNeedleWidth()) / 2);
-					break;
-
-				case 'r':
-					$left = (int)round($originalWidth - $resize->getNeedleWidth());
-					break;
+			if ($topCrop === 'c') {
+				$left = (int) round(($originalWidth - $resize->getNeedleWidth()) / 2);
+			} elseif ($topCrop === 'r') {
+				$left = (int) round($originalWidth - $resize->getNeedleWidth());
+			} else {
+				$left = 0;
 			}
 
 			$image->crop($left, $top, $resize->getNeedleWidth(), $resize->getNeedleHeight())
 				->resize(
 					$needleWidth,
-					$needleHeight
+					$needleHeight,
 				);
 		}
 	}
@@ -426,7 +391,7 @@ final class ImageGenerator
 	/**
 	 * Find best scale ratio of sizes for crop
 	 *
-	 * @param int[] $original
+	 * @param array<int, int|null> $original
 	 * @param array<int, int|null> $needle
 	 */
 	private function getMaxSizeForCrop(array $original, array $needle): MaxSizeForCropEntity
@@ -438,13 +403,16 @@ final class ImageGenerator
 		if ($needleWidth === null || $needleHeight === null) {
 			if ($needleWidth === null) {
 				$needleRatio = $originalWidth / $originalHeight;
-				$needleWidth = (int)($needleRatio * $needleHeight);
+				$needleWidth = (int) ($needleRatio * $needleHeight);
 			} else {
 				$needleRatio = $originalHeight / $originalWidth;
-				$needleHeight = (int)($needleRatio * $needleWidth);
+				$needleHeight = (int) ($needleRatio * $needleWidth);
 			}
 		} else {
-			$needleRatio = !$needleWidthIsGreater ? $needleHeight / $needleWidth : $needleWidth / $needleHeight;
+			$needleRatio = !$needleWidthIsGreater
+				? $needleHeight / $needleWidth
+				: $needleWidth / $needleHeight;
+
 			while ($needleWidth < $originalWidth && $needleHeight < $originalHeight) {
 				if ($needleWidthIsGreater) {
 					$needleWidth += $needleRatio;
@@ -463,16 +431,16 @@ final class ImageGenerator
 		}
 
 		return new MaxSizeForCropEntity(
-			(int)$needleWidth,
-			(int)$needleHeight,
-			(float)$needleRatio,
+			(int) $needleWidth,
+			(int) $needleHeight,
+			(float) $needleRatio,
 		);
 	}
 
 
 	/**
 	 * @param int[] $xy
-	 * @param array<int, int|null> $needle
+	 * @param array<int, int> $needle
 	 */
 	private function percentagesShift(string $absolutePath, array $xy, array $needle): void
 	{
@@ -481,7 +449,7 @@ final class ImageGenerator
 		$this->saveNetteImage(
 			$absolutePath,
 			$this->loadNetteImage($absolutePath)
-				->resize($needleWidth, $needleHeight, Image::FILL)
+				->resize($needleWidth, $needleHeight, Image::FILL),
 		);
 		$image = $this->loadNetteImage($absolutePath);
 
@@ -492,34 +460,21 @@ final class ImageGenerator
 			$originalHeight = $image->getHeight();
 			$originalWidth = $image->getWidth();
 			if ($originalHeight * 2 < $originalWidth) {
-				$left = round(
+				$left = (int) round(
 					(($needleWidth * $originalHeight - $originalWidth * $needleHeight) / $needleHeight)
-					* $xy['px']
+					* $xy['px'],
 				);
 				$top = 0;
 			} else {
-				$top = round(
+				$top = (int) round(
 					(($originalWidth * $needleHeight - $needleWidth * $originalHeight) / $needleWidth)
-					* $xy['py']
+					* $xy['py'],
 				);
 				$left = 0;
 			}
 
 			$image->crop($left, $top, $needleWidth, $needleHeight);
 			$this->saveNetteImage($absolutePath, $image);
-		}
-	}
-
-
-	private function optimizeImage(string $absolutePath): void
-	{
-		if (str_ends_with($absolutePath, '.jpg')) {
-			$quality = ($this->request->getWidth() * $this->request->getHeight() > 479999 ? 85 : 95);
-			$command = 'jpegoptim -s -f -m' . $quality . ' ' . escapeshellarg($absolutePath);
-			$this->shellExec($command);
-		} elseif (str_ends_with($absolutePath, '.png')) {
-			$command = 'optipng -o2 ' . escapeshellarg($absolutePath);
-			$this->shellExec($command);
 		}
 	}
 }

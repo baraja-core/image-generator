@@ -8,13 +8,14 @@ namespace Baraja\ImageGenerator;
 final class ImageGeneratorRequest
 {
 	public const
-		CROP_SMART = 'crop_smart',
+		CROP_SMART = 'sm',
 		CROP_RATIO = 'crop_ratio';
 
 	public const
-		SCALE_R = 'scale_ratio',
-		SCALE_C = 'scale_crop',
-		SCALE_A = 'scale_absolute';
+		SCALE_DEFAULT = null,
+		SCALE_RATIO = 'r',
+		SCALE_COVER = 'c',
+		SCALE_ABSOLUTE = 'a';
 
 	private ?int $width = null;
 
@@ -22,15 +23,8 @@ final class ImageGeneratorRequest
 
 	private bool $breakPoint = false;
 
-	/**
-	 * Scale strategy:
-	 * "r" - ratio
-	 * "c" - cover
-	 * "a" - absolute
-	 */
-	private ?string $scale = null;
+	private ?string $scale = self::SCALE_DEFAULT;
 
-	/** Possible values: self::CROP_* */
 	private ?string $crop = self::CROP_SMART;
 
 	private ?int $px = null;
@@ -43,17 +37,17 @@ final class ImageGeneratorRequest
 	 *     width: int,
 	 *     height: int,
 	 *     breakPoint: bool,
-	 *     scale: string,
-	 *     crop: string,
-	 *     px: int,
-	 *     py: int
+	 *     scale: string|null,
+	 *     crop: string|null,
+	 *     px: int|null,
+	 *     py: int|null
 	 * } $params
 	 */
-	public function __construct(array $params = [])
+	public function __construct(array $params)
 	{
 		if (isset($params['width'], $params['height'])) {
-			$this->setWidth((int)$params['width']);
-			$this->setHeight((int)$params['height']);
+			$this->setWidth((int) $params['width']);
+			$this->setHeight((int) $params['height']);
 		} else {
 			throw new \InvalidArgumentException('Width or height params are required.');
 		}
@@ -66,7 +60,15 @@ final class ImageGeneratorRequest
 
 
 	/**
-	 * @param string|array<string, string|int> $params
+	 * @param array{
+	 *     width: int,
+	 *     height: int,
+	 *     breakPoint: bool,
+	 *     scale: string|null,
+	 *     crop: string|null,
+	 *     px: int|null,
+	 *     py: int|null
+	 * }|string $params
 	 */
 	public static function createFromParams(string|array $params): self
 	{
@@ -81,35 +83,37 @@ final class ImageGeneratorRequest
 		preg_match('/^w(\d+)/i', $params, $w);
 		preg_match('/^(w\d+)?h(\d+)/i', $params, $h);
 
-		$return = [];
-		$return['width'] = (isset($w[1]) && $w[1]) ? (int)$w[1] : null;
-		$return['height'] = (isset($h[2]) && $h[2]) ? (int)$h[2] : null;
-		$return['breakPoint'] = str_contains($params, '-br');
-		if (preg_match('/-sc([rca])/i', $params, $sc)) {
-			$return['scale'] = (isset($sc[1]) && $sc[1]) ? $sc[1] : null;
-		}
-		if (preg_match('/-c([a-z]{2,5})/', $params, $c)) {
-			$return['crop'] = (isset($c[1]) && $c[1]) ? $c[1] : null;
-		}
-		if (preg_match('/-px(\d+)/i', $params, $px)) {
-			$return['px'] = (isset($px[1]) && $px[1]) ? (int)$px[1] : null;
-		}
-		if (preg_match('/-py(\d+)/i', $params, $py)) {
-			$return['py'] = (isset($py[1]) && $py[1]) ? (int)$py[1] : null;
-		}
-
-		return new self($return);
+		return new self([
+			'width' => (isset($w[1]) && $w[1]) ? (int) $w[1] : 0,
+			'height' => (isset($h[2]) && $h[2]) ? (int) $h[2] : 0,
+			'breakPoint' => str_contains($params, '-br'),
+			'scale' => preg_match('/-sc([rca])/i', $params, $sc)
+				? ((isset($sc[1]) && $sc[1]) ? (string) $sc[1] : null)
+				: null,
+			'crop' => preg_match('/-c([a-z]{2,5})/', $params, $c)
+				? ((isset($c[1]) && $c[1]) ? (string) $c[1] : null)
+				: null,
+			'px' => preg_match('/-px(\d+)/i', $params, $px)
+				? ((isset($px[1]) && $px[1]) ? (int) $px[1] : null)
+				: null,
+			'py' => preg_match('/-py(\d+)/i', $params, $py)
+				? ((isset($py[1]) && $py[1]) ? (int) $py[1] : null)
+				: null,
+		]);
 	}
 
 
 	private function setWidth(int $width): void
 	{
+		if ($width === 0) {
+			throw new \InvalidArgumentException('Width can not be zero.');
+		}
 		if ($width < 16) {
 			trigger_error('Minimal mandatory width is 16px, but "' . $width . '" given.');
 			$width = 16;
-		}
-		if ($width > 3000) {
+		} elseif ($width > 3_000) {
 			trigger_error('Image is so large. Maximal width is 3000px, but "' . $width . '" given.');
+			$width = 3_000;
 		}
 		$this->width = $width;
 	}
@@ -117,12 +121,15 @@ final class ImageGeneratorRequest
 
 	private function setHeight(int $height): void
 	{
+		if ($height === 0) {
+			throw new \InvalidArgumentException('Height can not be zero.');
+		}
 		if ($height < 16) {
 			trigger_error('Minimal mandatory height is 16px, but "' . $height . '" given.');
 			$height = 16;
-		}
-		if ($height > 3000) {
+		} elseif ($height > 3_000) {
 			trigger_error('Image is so large. Maximal height is 3000px, but "' . $height . '" given.');
+			$height = 3_000;
 		}
 		$this->height = $height;
 	}
