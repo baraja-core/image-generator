@@ -15,15 +15,11 @@ final class SmartCrop
 
 	public function crop(string $path, ?int $width, ?int $height, \Nette\Utils\Image $image): void
 	{
-		if ($width && !$height) {
-			$height = $width;
+		if ($width === null) {
+			$width = $height ?: 150;
 		}
-		if (!$width && $height) {
-			$width = $height;
-		}
-		if (!$width && !$height) {
-			$width = 150;
-			$height = 150;
+		if ($height === null) {
+			$height = $width ?: 150;
 		}
 
 		if ($width <= $image->getWidth() || $height <= $image->getHeight()) {

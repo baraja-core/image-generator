@@ -37,10 +37,10 @@ final class ImageGeneratorRequest
 	 *     width: int,
 	 *     height: int,
 	 *     breakPoint: bool,
-	 *     scale: string,
-	 *     crop: string,
-	 *     px: int,
-	 *     py: int
+	 *     scale: string|null,
+	 *     crop: string|null,
+	 *     px: int|null,
+	 *     py: int|null
 	 * } $params
 	 */
 	public function __construct(array $params)
@@ -64,10 +64,10 @@ final class ImageGeneratorRequest
 	 *     width: int,
 	 *     height: int,
 	 *     breakPoint: bool,
-	 *     scale: string,
-	 *     crop: string,
-	 *     px: int,
-	 *     py: int
+	 *     scale: string|null,
+	 *     crop: string|null,
+	 *     px: int|null,
+	 *     py: int|null
 	 * }|string $params
 	 */
 	public static function createFromParams(string|array $params): self
