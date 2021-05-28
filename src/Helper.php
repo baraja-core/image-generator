@@ -10,7 +10,6 @@ use Nette\Http\Request;
 
 final class Helper
 {
-
 	/** @throws \Error */
 	public function __construct()
 	{
