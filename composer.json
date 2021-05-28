@@ -1,0 +1,43 @@
+{
+	"name": "baraja-core/image-generator",
+	"license": "MIT",
+	"description": "Full automatic ImageGenerator for creating dynamic content by URL.",
+	"homepage": "https://github.com/baraja-core/image-generator",
+	"authors": [
+		{
+			"name": "Jan Barášek",
+			"homepage": "https://baraja.cz"
+		}
+	],
+	"require": {
+		"php": ">=7.1.0",
+		"ext-gd": "*",
+		"ext-session": "*",
+		"ext-json": "*",
+		"ext-fileinfo": "*",
+		"ext-curl": "*",
+		"nette/utils": "^3.0",
+		"nette/http": "^3.0",
+		"nette/di": "^3.0",
+		"nette/application": "^3.0"
+	},
+	"require-dev": {
+		"latte/latte": "^2.5",
+		"tracy/tracy": "^2.8",
+		"phpstan/phpstan": "^0.12.74",
+		"phpstan/phpstan-nette": "^0.12.14",
+		"spaze/phpstan-disallowed-calls": "^1.1",
+		"roave/security-advisories": "dev-master"
+	},
+	"autoload": {
+		"classmap": [
+			"src/"
+		]
+	},
+	"scripts": {
+		"phpstan": [
+			"vendor/bin/phpstan analyse src -c phpstan.neon --level 8 --no-progress"
+		]
+	},
+	"minimum-stability": "stable"
+}

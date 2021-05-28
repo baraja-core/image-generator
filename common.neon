@@ -1,0 +1,2 @@
+extensions:
+	imageGenerator: Baraja\ImageGenerator\ImageGeneratorExtension

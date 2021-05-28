@@ -1,0 +1,100 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Baraja\ImageGenerator;
+
+
+use Nette\Application\Application;
+use Nette\Bridges\ApplicationLatte\ILatteFactory;
+use Nette\DI\CompilerExtension;
+use Nette\DI\Definitions\FactoryDefinition;
+use Nette\DI\Definitions\ServiceDefinition;
+use Nette\PhpGenerator\ClassType;
+use Nette\Schema\Expect;
+use Nette\Schema\Schema;
+
+final class ImageGeneratorExtension extends CompilerExtension
+{
+	public function getConfigSchema(): Schema
+	{
+		return Expect::structure(
+			[
+				'debugMode' => Expect::bool(false),
+				'defaultBackgroundColor' => Expect::arrayOf(Expect::int())->max(3),
+				'cropPoints' => Expect::arrayOf(Expect::arrayOf(Expect::int())),
+			],
+		)->castTo('array');
+	}
+
+
+	public function beforeCompile(): void
+	{
+		$builder = $this->getContainerBuilder();
+
+		$builder->addDefinition($this->prefix('image'))
+			->setFactory(Image::class)
+			->setArgument('rootDir', dirname($builder->parameters['wwwDir']))
+			->addSetup('?->setDebugMode(?)', ['@self', $this->config['debugMode'] ?? false]);
+
+		$builder->addDefinition($this->prefix('config'))
+			->setFactory(Config::class)
+			->setArguments(
+				[
+					'defaultBackgroundColor' => $this->config['defaultBackgroundColor'] ?: [255, 255, 255],
+					'cropPoints' => $this->config['cropPoints'] ?: [
+						480 => [910, 30, 1845, 1150],
+						600 => [875, 95, 1710, 910],
+						768 => [975, 130, 1743, 660],
+						1024 => [805, 110, 1829, 850],
+						1280 => [615, 63, 1895, 800],
+						1440 => [535, 63, 1975, 800],
+						1680 => [410, 63, 2090, 800],
+						1920 => [320, 63, 2240, 800],
+						2560 => [0, 63, 2560, 800],
+					],
+				]
+			);
+
+
+		$builder->addDefinition($this->prefix('imageGenerator'))
+			->setFactory(ImageGenerator::class);
+
+		/** @var FactoryDefinition $latte */
+		$latte = $builder->getDefinitionByType(ILatteFactory::class);
+		$latte->getResultDefinition()
+			->addSetup(
+				'?->onCompile[] = function ($engine) { ' . Macros::class . '::install($engine->getCompiler()); }',
+				[
+					'@self',
+				],
+			);
+	}
+
+
+	public function afterCompile(ClassType $class): void
+	{
+		/** @var ServiceDefinition $application */
+		$application = $this->getContainerBuilder()->getDefinitionByType(Application::class);
+
+		/** @var ServiceDefinition $image */
+		$image = $this->getContainerBuilder()->getDefinitionByType(Image::class);
+
+		$class->getMethod('initialize')->addBody(
+			'// image generator.' . "\n"
+			. '(function () {' . "\n"
+			. "\t" . 'if (preg_match(?, $this->getService(\'http.request\')->getUrl()->getRelativeUrl(), $parser) ' . "\n"
+			. "\t\t" . '&& (isset($parser[\'dirname\']) === false || $parser[\'dirname\'] !== \'gallery\')) {' . "\n"
+			. "\t\t" . '$this->getService(?)->onStartup[] = function(' . Application::class . ' $a) {' . "\n"
+			. "\t\t\t" . '(new ' . ImageGeneratorRoute::class . ')->run($this->getService(\'http.request\'), $this->getService(?));' . "\n"
+			. "\t\t" . '};' . "\n"
+			. "\t" . '}' . "\n"
+			. '})();',
+			[
+				ImageGeneratorRoute::PATTERN,
+				$application->getName(),
+				$image->getName(),
+			],
+		);
+	}
+}
