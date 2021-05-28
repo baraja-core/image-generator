@@ -22,8 +22,8 @@ final class ImageGeneratorRoute
 	public static function renderPlaceholder(string $params, ?string $message = null): void
 	{
 		if (preg_match('/^(?:w(?<width>\d+))?(?:h(?<height>\d+))?/', $params, $paramsParser)) {
-			$width = isset($paramsParser['width']) ? (int)$paramsParser['width'] : 300;
-			$height = isset($paramsParser['height']) ? (int)$paramsParser['height'] : 300;
+			$width = isset($paramsParser['width']) ? (int) $paramsParser['width'] : 300;
+			$height = isset($paramsParser['height']) ? (int) $paramsParser['height'] : 300;
 		} else {
 			$width = 300;
 			$height = 300;
@@ -47,27 +47,27 @@ final class ImageGeneratorRoute
 			throw new \RuntimeException('Image must be "source": ' . Helper::getLastErrorMessage());
 		}
 
-		imagecolorallocate($image, (int)$background[0], (int)$background[1], (int)$background[2]);
-		$textColor = imagecolorallocate($image, (int)$color[0], (int)$color[1], (int)$color[2]);
+		imagecolorallocate($image, (int) $background[0], (int) $background[1], (int) $background[2]);
+		$textColor = imagecolorallocate($image, (int) $color[0], (int) $color[1], (int) $color[2]);
 		$text = $width . 'x' . $height;
 		$x = ($width - (\strlen($text) * 9)) / 2;
 		$y = ($height - (\strlen($text) * 8)) / 2;
 
 		if ($message !== null && self::isDebugRequest(false)) {
-			imagestring($image, 3, (int)$x, (int)($y - 5), $text, $textColor);
+			imagestring($image, 3, (int) $x, (int) ($y - 5), $text, $textColor);
 
 			$message = Strings::toAscii($message);
 			$line = (int)($width / 7);
 
 			for ($i = 0; preg_match('/^(.{' . $line . '})(.*)$/', $message, $messageParser); $i++) {
-				imagestring($image, 2, 8, (int)($y + 10 + $i * 15), $messageParser[1], $textColor);
+				imagestring($image, 2, 8, (int) ($y + 10 + $i * 15), $messageParser[1], $textColor);
 				if ($i > 30 || trim($message = $messageParser[2]) === '') {
 					break;
 				}
 			}
 		} else {
-			imagestring($image, 5, (int)$x, (int)$y, $text, $textColor);
-			imagestring($image, 2, (int)$x, (int)($y + 20), 'Image generator', $textColor);
+			imagestring($image, 5, (int) $x, (int) $y, $text, $textColor);
+			imagestring($image, 2, (int) $x, (int) ($y + 20), 'Image generator', $textColor);
 		}
 
 		imagepng($image);
@@ -128,7 +128,7 @@ final class ImageGeneratorRoute
 		} catch (\Throwable $e) {
 			$error = self::isDebugRequest() === true
 				? $e->getMessage()
-				: (string)preg_replace('/^[^:]*?:\s+/', '', $e->getMessage());
+				: (string) preg_replace('/^[^:]*?:\s+/', '', $e->getMessage());
 
 			if (self::isDebugRequest()) {
 				throw $e;

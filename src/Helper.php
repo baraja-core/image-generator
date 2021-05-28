@@ -29,7 +29,7 @@ final class Helper
 		$return = '';
 		for ($i = 0; isset($hash[$i]) === true; $i++) {
 			if ($i > 1) {
-				$return .= chr((int)round((ord($hash[$i]) + ord($hash[$i - 1])) / 2));
+				$return .= chr((int) round((ord($hash[$i]) + ord($hash[$i - 1])) / 2));
 			}
 		}
 		while (strlen($return) < 12) {
@@ -209,10 +209,10 @@ final class Helper
 		$lastError = error_get_last();
 		if ($lastError && isset($lastError['message'])) {
 			return trim(
-				(string)preg_replace(
+				(string) preg_replace(
 					'/\s*\[<a[^>]+>[a-z0-9.\-_()]+<\/a>]\s*/i',
 					' ',
-					(string)$lastError['message'],
+					(string) $lastError['message'],
 				),
 			);
 		}
@@ -259,7 +259,7 @@ final class Helper
 
 		$fileCapture = '';
 		if (is_file($file) === true) {
-			$fileParser = explode("\n", str_replace(["\r\n", "\r"], "\n", (string)file_get_contents($file)));
+			$fileParser = explode("\n", str_replace(["\r\n", "\r"], "\n", (string) file_get_contents($file)));
 			$start = $line > 8 ? $line - 8 : 0;
 
 			for ($i = $start; $i <= $start + 15; $i++) {

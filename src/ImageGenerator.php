@@ -71,7 +71,7 @@ final class ImageGenerator
 
 		$this->copySourceFileToTemp(
 			$sourceFile,
-			$tempFile = (string)preg_replace('/(.+?)(\.\w+)$/', '$1_temp$2', $targetFile)
+			$tempFile = (string) preg_replace('/(.+?)(\.\w+)$/', '$1_temp$2', $targetFile)
 		);
 
 		if ($this->request->isBreakPoint()) {
@@ -91,7 +91,7 @@ final class ImageGenerator
 			} else {
 				$this->cropNette(
 					$tempFile,
-					(string)$this->request->getCrop(),
+					(string) $this->request->getCrop(),
 					[
 						$this->request->getWidth(),
 						$this->request->getHeight(),
@@ -102,8 +102,8 @@ final class ImageGenerator
 			$this->percentagesShift(
 				$tempFile,
 				[
-					'px' => (int)$this->request->getPx(),
-					'py' => (int)$this->request->getPy(),
+					'px' => (int) $this->request->getPx(),
+					'py' => (int) $this->request->getPy(),
 				],
 				[
 					$this->request->getWidth(),
@@ -254,10 +254,10 @@ final class ImageGenerator
 			if ($width === null || $height === null) {
 				if ($width === null) {
 					$needleRatio = $imageSize[0] / $imageSize[1];
-					$width = (int)($needleRatio * $height);
+					$width = (int) ($needleRatio * $height);
 				} else {
 					$needleRatio = $imageSize[1] / $imageSize[0];
-					$height = (int)($needleRatio * $width);
+					$height = (int) ($needleRatio * $width);
 				}
 			}
 
@@ -300,7 +300,7 @@ final class ImageGenerator
 			return '';
 		}
 
-		return (string)@shell_exec($command . ' 2>&1');
+		return (string) @shell_exec($command . ' 2>&1');
 	}
 
 
@@ -392,11 +392,11 @@ final class ImageGenerator
 					break;
 
 				case 'm':
-					$top = (int)round(($originalHeight - $resize->getNeedleHeight()) / 2);
+					$top = (int) round(($originalHeight - $resize->getNeedleHeight()) / 2);
 					break;
 
 				case 'b':
-					$top = (int)round($originalHeight - $resize->getNeedleHeight());
+					$top = (int) round($originalHeight - $resize->getNeedleHeight());
 					break;
 			}
 
@@ -406,11 +406,11 @@ final class ImageGenerator
 					break;
 
 				case 'c':
-					$left = (int)round(($originalWidth - $resize->getNeedleWidth()) / 2);
+					$left = (int) round(($originalWidth - $resize->getNeedleWidth()) / 2);
 					break;
 
 				case 'r':
-					$left = (int)round($originalWidth - $resize->getNeedleWidth());
+					$left = (int) round($originalWidth - $resize->getNeedleWidth());
 					break;
 			}
 
@@ -438,10 +438,10 @@ final class ImageGenerator
 		if ($needleWidth === null || $needleHeight === null) {
 			if ($needleWidth === null) {
 				$needleRatio = $originalWidth / $originalHeight;
-				$needleWidth = (int)($needleRatio * $needleHeight);
+				$needleWidth = (int) ($needleRatio * $needleHeight);
 			} else {
 				$needleRatio = $originalHeight / $originalWidth;
-				$needleHeight = (int)($needleRatio * $needleWidth);
+				$needleHeight = (int) ($needleRatio * $needleWidth);
 			}
 		} else {
 			$needleRatio = !$needleWidthIsGreater ? $needleHeight / $needleWidth : $needleWidth / $needleHeight;
@@ -463,9 +463,9 @@ final class ImageGenerator
 		}
 
 		return new MaxSizeForCropEntity(
-			(int)$needleWidth,
-			(int)$needleHeight,
-			(float)$needleRatio,
+			(int) $needleWidth,
+			(int) $needleHeight,
+			(float) $needleRatio,
 		);
 	}
 

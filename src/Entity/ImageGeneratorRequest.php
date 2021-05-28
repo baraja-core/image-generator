@@ -52,8 +52,8 @@ final class ImageGeneratorRequest
 	public function __construct(array $params = [])
 	{
 		if (isset($params['width'], $params['height'])) {
-			$this->setWidth((int)$params['width']);
-			$this->setHeight((int)$params['height']);
+			$this->setWidth((int) $params['width']);
+			$this->setHeight((int) $params['height']);
 		} else {
 			throw new \InvalidArgumentException('Width or height params are required.');
 		}
@@ -82,8 +82,8 @@ final class ImageGeneratorRequest
 		preg_match('/^(w\d+)?h(\d+)/i', $params, $h);
 
 		$return = [];
-		$return['width'] = (isset($w[1]) && $w[1]) ? (int)$w[1] : null;
-		$return['height'] = (isset($h[2]) && $h[2]) ? (int)$h[2] : null;
+		$return['width'] = (isset($w[1]) && $w[1]) ? (int) $w[1] : null;
+		$return['height'] = (isset($h[2]) && $h[2]) ? (int) $h[2] : null;
 		$return['breakPoint'] = str_contains($params, '-br');
 		if (preg_match('/-sc([rca])/i', $params, $sc)) {
 			$return['scale'] = (isset($sc[1]) && $sc[1]) ? $sc[1] : null;
@@ -92,10 +92,10 @@ final class ImageGeneratorRequest
 			$return['crop'] = (isset($c[1]) && $c[1]) ? $c[1] : null;
 		}
 		if (preg_match('/-px(\d+)/i', $params, $px)) {
-			$return['px'] = (isset($px[1]) && $px[1]) ? (int)$px[1] : null;
+			$return['px'] = (isset($px[1]) && $px[1]) ? (int) $px[1] : null;
 		}
 		if (preg_match('/-py(\d+)/i', $params, $py)) {
-			$return['py'] = (isset($py[1]) && $py[1]) ? (int)$py[1] : null;
+			$return['py'] = (isset($py[1]) && $py[1]) ? (int) $py[1] : null;
 		}
 
 		return new self($return);

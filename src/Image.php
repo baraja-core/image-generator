@@ -113,7 +113,7 @@ final class Image
 			. '/' . $request->getBasename()
 			. '.' . $request->getExtension();
 
-		$absoluteFileDirPath = (string)preg_replace(
+		$absoluteFileDirPath = (string) preg_replace(
 			'@/+@',
 			'/',
 			$this->rootDir . '/www/' . str_replace(
@@ -127,10 +127,10 @@ final class Image
 		if (is_dir($absoluteFileDirPath) === true) {
 			foreach (scandir($absoluteFileDirPath, 1) ?: [] as $item) {
 				if (
-					(string)preg_replace('@\.(?<extension>[a-zA-Z]+)$@', '', $item) === $request->getBasename()
+					(string) preg_replace('@\.(?<extension>[a-zA-Z]+)$@', '', $item) === $request->getBasename()
 					&& (!$absoluteFilePath || str_ends_with($item, $request->getExtension()))
 				) {
-					$absoluteFilePath = (string)preg_replace(
+					$absoluteFilePath = (string) preg_replace(
 						'@/+@',
 						'/',
 						$this->rootDir . '/www/'
@@ -203,8 +203,8 @@ final class Image
 
 		if ($absoluteFilePath) {
 			$this->sourcePath = $absoluteFilePath;
-			$this->tempPath = (string)preg_replace('@/+@', '/', $absoluteTempFilePath);
-			$this->cachePath = (string)preg_replace('@/+@', '/', $absoluteCacheFilePath);
+			$this->tempPath = (string) preg_replace('@/+@', '/', $absoluteTempFilePath);
+			$this->cachePath = (string) preg_replace('@/+@', '/', $absoluteCacheFilePath);
 		} else {
 			throw new \ErrorException(
 				'Source file "' . $filePath . '" does not exist.'
@@ -237,7 +237,7 @@ final class Image
 			]
 		);
 
-		$return = (string)curl_exec($ch);
+		$return = (string) curl_exec($ch);
 		$httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
 
@@ -325,8 +325,8 @@ final class Image
 
 	private function prepareCacheAndTempDir(string $tempPath, string $cachePath): void
 	{
-		$this->createDir((string)preg_replace('/\/[a-zA-Z0-9-_.]+$/', '', $tempPath));
-		$this->createDir((string)preg_replace('/\/[a-zA-Z0-9-_.]+$/', '', $cachePath));
+		$this->createDir((string) preg_replace('/\/[a-zA-Z0-9-_.]+$/', '', $tempPath));
+		$this->createDir((string) preg_replace('/\/[a-zA-Z0-9-_.]+$/', '', $cachePath));
 	}
 
 
