@@ -168,7 +168,7 @@ final class ImageGenerator
 		if (isset($formatToFunction[$format]) === false) {
 			throw new \InvalidArgumentException(
 				'Format "' . $format . '" is not supported. Did you mean "'
-				. implode('", "', array_keys($formatToFunction),)
+				. implode('", "', array_keys($formatToFunction))
 				. '"?',
 			);
 		}
@@ -321,10 +321,10 @@ final class ImageGenerator
 				$absolutePath,
 				$this->loadNetteImage($absolutePath)
 					->resize(
-					$width,
-					$height,
-					Image::SHRINK_ONLY | Image::STRETCH
-				),
+						$width,
+						$height,
+						Image::SHRINK_ONLY | Image::STRETCH
+					),
 			);
 		}
 	}

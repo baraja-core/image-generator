@@ -22,8 +22,8 @@ final class ImageGeneratorRoute
 	public static function renderPlaceholder(string $params, ?string $message = null): void
 	{
 		if (preg_match('/^(?:w(?<width>\d+))?(?:h(?<height>\d+))?/', $params, $paramsParser)) {
-			$width = isset($paramsParser['width']) ? (int) $paramsParser['width'] : 300;
-			$height = isset($paramsParser['height']) ? (int) $paramsParser['height'] : 300;
+			$width = (int) ($paramsParser['width'] ?? 300);
+			$height = (int) ($paramsParser['height'] ?? 300);
 		} else {
 			$width = 300;
 			$height = 300;

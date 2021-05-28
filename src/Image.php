@@ -185,9 +185,9 @@ final class Image
 
 		$cachePath = '_cache/' . $fileSuffix;
 		$tempPath = '_cache/_temp/' . $fileSuffix;
-		$absoluteTempPath = $this->rootDir . '/www/' . str_replace(
-				$request->getBasename() . '.'
-				. $request->getExtension(),
+		$absoluteTempPath = $this->rootDir . '/www/'
+			. str_replace(
+				$request->getBasename() . '.' . $request->getExtension(),
 				'',
 				$tempPath,
 			);
