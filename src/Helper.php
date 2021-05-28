@@ -154,20 +154,15 @@ final class Helper
 			if (self::userIp() === '127.0.0.1') {
 				return $is = true;
 			}
-			$url = Url::get()->getCurrentUrl();
-			if ($url !== null) {
-				$localHosts = ['localhost', '[^\/]+\.l', '127\.0\.0\.1'];
-				$allowedPorts = ['80', '443', '3000'];
-				$is = (bool)preg_match(
-					'/^https?:\/\/(' . implode('|', $localHosts) . ')(:(?:' . implode(
-						'|',
-						$allowedPorts
-					) . '))?(?:\/|$)/',
-					$url,
-				);
-			} else {
-				$is = false;
-			}
+			$localHosts = ['localhost', '[^\/]+\.l', '127\.0\.0\.1'];
+			$allowedPorts = ['80', '443', '3000'];
+			$is = (bool) preg_match(
+				'/^https?:\/\/(' . implode('|', $localHosts) . ')(:(?:' . implode(
+					'|',
+					$allowedPorts
+				) . '))?(?:\/|$)/',
+				Url::get()->getCurrentUrl(),
+			);
 		}
 
 		return $is;
@@ -177,7 +172,6 @@ final class Helper
 	public static function userIp(): string
 	{
 		static $ip = null;
-
 		if ($ip === null) {
 			if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) { // Cloudflare support
 				$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];

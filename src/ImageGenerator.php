@@ -86,7 +86,7 @@ final class ImageGenerator
 				],
 			);
 		} elseif ($this->request->getCrop()) {
-			if ($this->request->getCrop() === 'sm') {
+			if ($this->request->getCrop() === ImageGeneratorRequest::CROP_SMART) {
 				$this->cropSmart($tempFile, $this->request->getWidth(), $this->request->getHeight());
 			} else {
 				$this->cropNette(
@@ -143,8 +143,7 @@ final class ImageGenerator
 			if (isset($formatMap[$contentType]) === false) {
 				return false;
 			}
-
-			$format = $formatMap[$contentType] ?? null;
+			$format = $formatMap[$contentType];
 		}
 		$formatToFunction = [
 			'png' => 'imagecreatefrompng',
@@ -156,10 +155,9 @@ final class ImageGenerator
 		$format = strtolower($format);
 		if (isset($formatToFunction[$format]) === false) {
 			throw new \InvalidArgumentException(
-				'Format "' . $format . '" is not supported. Did you mean "' . implode(
-					'", "',
-					array_keys($formatToFunction),
-				) . '"?',
+				'Format "' . $format . '" is not supported. Did you mean "'
+				. implode('", "', array_keys($formatToFunction),)
+				. '"?',
 			);
 		}
 		if (Helper::functionIsAvailable($function = $formatToFunction[$format]) === false) {
@@ -252,13 +250,14 @@ final class ImageGenerator
 
 
 	/**
-	 * @param array<int, int|null> $size
+	 * @param array<int, int> $size
 	 */
 	private function scale(string $absolutePath, string $scale, array $size): void
 	{
 		[$width, $height] = $size;
 
-		if ($scale === 'r') {
+		if ($scale === ImageGeneratorRequest::SCALE_RATIO) {
+			/** @var array{0: int, 1: int} $imageSize */
 			$imageSize = getimagesize($absolutePath);
 			if ($width === null || $height === null) {
 				if ($width === null) {
@@ -283,13 +282,13 @@ final class ImageGenerator
 						->resize($width, $height),
 				);
 			}
-		} elseif ($scale === 'c') {
+		} elseif ($scale === ImageGeneratorRequest::SCALE_COVER) {
 			$this->saveNetteImage(
 				$absolutePath,
 				$this->loadNetteImage($absolutePath)
 					->resize($width, $height, Image::EXACT),
 			);
-		} elseif ($scale === 'a') {
+		} elseif ($scale === ImageGeneratorRequest::SCALE_ABSOLUTE) {
 			$this->saveNetteImage(
 				$absolutePath,
 				$this->loadNetteImage($absolutePath)
@@ -363,7 +362,7 @@ final class ImageGenerator
 
 
 	/**
-	 * @param array<int, int|null> $size
+	 * @param array<int, int> $size
 	 */
 	private function cropNette(string $path, string $crop, array $size): void
 	{
@@ -381,17 +380,23 @@ final class ImageGenerator
 
 	/**
 	 * @param string $corner /^[tmb][lcr]$/
-	 * @param int[] $original
-	 * @param array<int, int|null> $needle
+	 * @param array<int, int> $original
+	 * @param array<int, int> $needle
 	 */
 	private function cropByCorner(Image $image, string $corner, array $original, array $needle): void
 	{
 		[$originalWidth, $originalHeight] = $original;
 		[$needleWidth, $needleHeight] = $needle;
 
-		$resize = $this->getMaxSizeForCrop([$originalWidth, $originalHeight], [$needleWidth, $needleHeight]);
+		$resize = $this->getMaxSizeForCrop(
+			[$originalWidth, $originalHeight],
+			[$needleWidth, $needleHeight],
+		);
 
-		if ($needleWidth <= $originalWidth && $needleHeight <= $originalHeight) {
+		if (
+			$needleWidth <= $originalWidth
+			&& $needleHeight <= $originalHeight
+		) {
 			$left = 0;
 			$top = 0;
 
@@ -426,7 +431,7 @@ final class ImageGenerator
 			$image->crop($left, $top, $resize->getNeedleWidth(), $resize->getNeedleHeight())
 				->resize(
 					$needleWidth,
-					$needleHeight
+					$needleHeight,
 				);
 		}
 	}
@@ -435,8 +440,8 @@ final class ImageGenerator
 	/**
 	 * Find best scale ratio of sizes for crop
 	 *
-	 * @param int[] $original
-	 * @param array<int, int|null> $needle
+	 * @param array<int, int> $original
+	 * @param array<int, int> $needle
 	 */
 	private function getMaxSizeForCrop(array $original, array $needle): MaxSizeForCropEntity
 	{
@@ -453,7 +458,10 @@ final class ImageGenerator
 				$needleHeight = (int) ($needleRatio * $needleWidth);
 			}
 		} else {
-			$needleRatio = !$needleWidthIsGreater ? $needleHeight / $needleWidth : $needleWidth / $needleHeight;
+			$needleRatio = !$needleWidthIsGreater
+				? $needleHeight / $needleWidth
+				: $needleWidth / $needleHeight;
+
 			while ($needleWidth < $originalWidth && $needleHeight < $originalHeight) {
 				if ($needleWidthIsGreater) {
 					$needleWidth += $needleRatio;
@@ -481,7 +489,7 @@ final class ImageGenerator
 
 	/**
 	 * @param int[] $xy
-	 * @param array<int, int|null> $needle
+	 * @param array<int, int> $needle
 	 */
 	private function percentagesShift(string $absolutePath, array $xy, array $needle): void
 	{
@@ -490,7 +498,7 @@ final class ImageGenerator
 		$this->saveNetteImage(
 			$absolutePath,
 			$this->loadNetteImage($absolutePath)
-				->resize($needleWidth, $needleHeight, Image::FILL)
+				->resize($needleWidth, $needleHeight, Image::FILL),
 		);
 		$image = $this->loadNetteImage($absolutePath);
 
@@ -503,13 +511,13 @@ final class ImageGenerator
 			if ($originalHeight * 2 < $originalWidth) {
 				$left = round(
 					(($needleWidth * $originalHeight - $originalWidth * $needleHeight) / $needleHeight)
-					* $xy['px']
+					* $xy['px'],
 				);
 				$top = 0;
 			} else {
 				$top = round(
 					(($originalWidth * $needleHeight - $needleWidth * $originalHeight) / $needleWidth)
-					* $xy['py']
+					* $xy['py'],
 				);
 				$left = 0;
 			}

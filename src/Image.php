@@ -357,6 +357,7 @@ final class Image
 		$src = imagecreatefrompng($path);
 		$width = (int) imagesx($src);
 		$height = (int) imagesy($src);
+		/** @var \GdImage $bg */
 		$bg = imagecreatetruecolor($width, $height);
 		$white = imagecolorallocate($bg, $defaultColor[0], $defaultColor[1], $defaultColor[2]);
 		imagefill($bg, 0, 0, $white);
@@ -381,7 +382,8 @@ final class Image
 	private function findSimilarImageBySameHash(): void
 	{
 		$md5CacheFile = md5_file($this->cachePath);
-		foreach (scandir(($pathInfo = pathinfo($this->cachePath))['dirname'], 1) ?: [] as $item) {
+		$pathInfo = pathinfo($this->cachePath);
+		foreach (scandir($pathInfo['dirname'], 1) ?: [] as $item) {
 			if (
 				preg_match(
 					'/^(?<filename>.+)(?<suffix>_(?<md5>.{32})\.md5)$/',
@@ -405,7 +407,7 @@ final class Image
 	/** Safe create dir and fix permissions. */
 	private function createDir(string $path): void
 	{
-		if (\is_dir($path) === true) {
+		if (is_dir($path) === true) {
 			$this->fixDirPerms($path);
 
 			return;
@@ -414,7 +416,7 @@ final class Image
 		$parts = [];
 		$partPath = $path;
 		while (true) {
-			if (\is_dir($partPath) === false) {
+			if (is_dir($partPath) === false) {
 				$parts[] = $partPath;
 				$partPath = dirname($partPath);
 			} else {
