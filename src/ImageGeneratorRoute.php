@@ -48,16 +48,16 @@ final class ImageGeneratorRoute
 		}
 
 		imagecolorallocate($image, (int) $background[0], (int) $background[1], (int) $background[2]);
-		$textColor = imagecolorallocate($image, (int) $color[0], (int) $color[1], (int) $color[2]);
+		$textColor = (int) imagecolorallocate($image, (int) $color[0], (int) $color[1], (int) $color[2]);
 		$text = $width . 'x' . $height;
-		$x = ($width - (\strlen($text) * 9)) / 2;
-		$y = ($height - (\strlen($text) * 8)) / 2;
+		$x = ($width - strlen($text) * 9) / 2;
+		$y = ($height - strlen($text) * 8) / 2;
 
 		if ($message !== null && self::isDebugRequest(false)) {
 			imagestring($image, 3, (int) $x, (int) ($y - 5), $text, $textColor);
 
 			$message = Strings::toAscii($message);
-			$line = (int)($width / 7);
+			$line = (int) ($width / 7);
 
 			for ($i = 0; preg_match('/^(.{' . $line . '})(.*)$/', $message, $messageParser); $i++) {
 				imagestring($image, 2, 8, (int) ($y + 10 + $i * 15), $messageParser[1], $textColor);

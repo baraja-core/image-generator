@@ -30,19 +30,21 @@ final class ImageGeneratorExtension extends CompilerExtension
 
 	public function beforeCompile(): void
 	{
+		/** @var mixed[] $config */
+		$config = $this->getConfig();
 		$builder = $this->getContainerBuilder();
 
 		$builder->addDefinition($this->prefix('image'))
 			->setFactory(Image::class)
 			->setArgument('rootDir', dirname($builder->parameters['wwwDir']))
-			->addSetup('?->setDebugMode(?)', ['@self', $this->config['debugMode'] ?? false]);
+			->addSetup('?->setDebugMode(?)', ['@self', $config['debugMode'] ?? false]);
 
 		$builder->addDefinition($this->prefix('config'))
 			->setFactory(Config::class)
 			->setArguments(
 				[
-					'defaultBackgroundColor' => $this->config['defaultBackgroundColor'] ?: [255, 255, 255],
-					'cropPoints' => $this->config['cropPoints'] ?: [
+					'defaultBackgroundColor' => $config['defaultBackgroundColor'] ?? [255, 255, 255],
+					'cropPoints' => $config['cropPoints'] ?? [
 						480 => [910, 30, 1845, 1150],
 						600 => [875, 95, 1710, 910],
 						768 => [975, 130, 1743, 660],

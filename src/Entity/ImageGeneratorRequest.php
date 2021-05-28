@@ -66,7 +66,15 @@ final class ImageGeneratorRequest
 
 
 	/**
-	 * @param string|array<string, string|int> $params
+	 * @param array{
+	 *     width: int,
+	 *     height: int,
+	 *     breakPoint: bool,
+	 *     scale: string,
+	 *     crop: string,
+	 *     px: int,
+	 *     py: int
+	 * }|string $params
 	 */
 	public static function createFromParams(string|array $params): self
 	{

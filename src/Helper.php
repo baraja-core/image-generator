@@ -56,7 +56,7 @@ final class Helper
 	 *
 	 * @sample '/images/forest.jpg'
 	 */
-	public static function invalidateCache(string $path, ?string $wwwDir = null, $recursive = false): int
+	public static function invalidateCache(string $path, ?string $wwwDir = null, bool $recursive = false): int
 	{
 		if (preg_match('/\.\./', $path)) {
 			throw new \InvalidArgumentException('Path "' . $path . '" could not contains \'..\'.');
@@ -78,6 +78,7 @@ final class Helper
 		$cachePathDirName = is_file($wwwDir . $path) ? dirname($cachePath) : $cachePath;
 		$files = [];
 		if (preg_match('/(?<baseName>[^\/]+)\.[^.]+$/', $cachePath, $cachePathWithoutSuffix)) {
+			/** @phpstan-ignore-next-line */
 			foreach (glob($cachePathDirName . '/' . $cachePathWithoutSuffix['baseName'] . '*') as $filePath) {
 				$files[] = $filePath;
 			}
@@ -88,6 +89,7 @@ final class Helper
 				}
 			}
 		} else {
+			/** @phpstan-ignore-next-line */
 			foreach (glob($cachePathDirName . '/*.*') as $filePath) {
 				$files[] = $filePath;
 			}
@@ -227,7 +229,7 @@ final class Helper
 		if (\function_exists($functionName) === true) {
 			$disableFunctions = ini_get('disable_functions');
 			if ($disabled === null && $disableFunctions) {
-				$disabled = explode(',', $disableFunctions) ?: [];
+				$disabled = explode(',', $disableFunctions);
 			}
 
 			return \in_array($functionName, $disabled, true) === false;

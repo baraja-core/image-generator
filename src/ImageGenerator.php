@@ -137,7 +137,10 @@ final class ImageGenerator
 				'image/jpeg' => 'jpg',
 			];
 
-			if (isset($formatMap[$contentType = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $path)]) === false) {
+			/** @var resource $fInfo */
+			$fInfo = finfo_open(FILEINFO_MIME_TYPE);
+			$contentType = (string) finfo_file($fInfo, $path);
+			if (isset($formatMap[$contentType]) === false) {
 				return false;
 			}
 
@@ -155,15 +158,15 @@ final class ImageGenerator
 			throw new \InvalidArgumentException(
 				'Format "' . $format . '" is not supported. Did you mean "' . implode(
 					'", "',
-					array_keys($formatToFunction)
-				) . '"?'
+					array_keys($formatToFunction),
+				) . '"?',
 			);
 		}
 		if (Helper::functionIsAvailable($function = $formatToFunction[$format]) === false) {
 			throw new \RuntimeException('Function "' . $function . '" is not available now.');
 		}
 
-		return (bool)@$function($path);
+		return (bool) @$function($path);
 	}
 
 
@@ -218,6 +221,12 @@ final class ImageGenerator
 		$bX = abs($cropPoints[$breakPoint][2] - $cropPoints[$breakPoint][0]);
 		$bY = abs($cropPoints[$breakPoint][3] - $cropPoints[$breakPoint][1]);
 
+		/**
+		 * @var int $aX
+		 * @var int $aY
+		 * @var int $bX
+		 * @var int $bY
+		 */
 		$this->saveNetteImage($absolutePath, $this->loadNetteImage($absolutePath)->crop($aX, $aY, $bX, $bY));
 	}
 

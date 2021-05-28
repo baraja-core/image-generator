@@ -19,7 +19,8 @@
 		"nette/utils": "^3.0",
 		"nette/http": "^3.0",
 		"nette/di": "^3.0",
-		"nette/application": "^3.0"
+		"nette/application": "^3.0",
+		"baraja-core/url": "^1.1"
 	},
 	"require-dev": {
 		"latte/latte": "^2.5",

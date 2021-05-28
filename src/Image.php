@@ -353,9 +353,10 @@ final class Image
 		@ini_set('memory_limit', '256M');
 		$defaultColor = $this->config->getDefaultBackgroundColor();
 
+		/** @var \GdImage $src */
 		$src = imagecreatefrompng($path);
-		$width = imagesx($src);
-		$height = imagesy($src);
+		$width = (int) imagesx($src);
+		$height = (int) imagesy($src);
 		$bg = imagecreatetruecolor($width, $height);
 		$white = imagecolorallocate($bg, $defaultColor[0], $defaultColor[1], $defaultColor[2]);
 		imagefill($bg, 0, 0, $white);
