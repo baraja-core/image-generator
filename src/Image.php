@@ -359,7 +359,7 @@ final class Image
 		$height = (int) imagesy($src);
 		/** @var \GdImage $bg */
 		$bg = imagecreatetruecolor($width, $height);
-		$white = imagecolorallocate($bg, $defaultColor[0], $defaultColor[1], $defaultColor[2]);
+		$white = (int) imagecolorallocate($bg, $defaultColor[0], $defaultColor[1], $defaultColor[2]);
 		imagefill($bg, 0, 0, $white);
 		imagecopyresampled($bg, $src, 0, 0, 0, 0, $width, $height, $width, $height);
 		imagepng($bg, $path, 0);
