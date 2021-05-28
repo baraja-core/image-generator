@@ -27,6 +27,7 @@ final class DefaultOptimizer implements Optimizer
 			return '';
 		}
 
+		/** @phpstan-ignore-next-line */
 		return (string) @shell_exec($command . ' 2>&1');
 	}
 }

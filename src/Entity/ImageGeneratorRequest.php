@@ -37,10 +37,10 @@ final class ImageGeneratorRequest
 	 *     width: int,
 	 *     height: int,
 	 *     breakPoint: bool,
-	 *     ?scale: string,
-	 *     ?crop: string,
-	 *     ?px: int,
-	 *     ?py: int
+	 *     scale: string,
+	 *     crop: string,
+	 *     px: int,
+	 *     py: int
 	 * } $params
 	 */
 	public function __construct(array $params)
@@ -64,10 +64,10 @@ final class ImageGeneratorRequest
 	 *     width: int,
 	 *     height: int,
 	 *     breakPoint: bool,
-	 *     ?scale: string,
-	 *     ?crop: string,
-	 *     ?px: int,
-	 *     ?py: int
+	 *     scale: string,
+	 *     crop: string,
+	 *     px: int,
+	 *     py: int
 	 * }|string $params
 	 */
 	public static function createFromParams(string|array $params): self
@@ -83,24 +83,23 @@ final class ImageGeneratorRequest
 		preg_match('/^w(\d+)/i', $params, $w);
 		preg_match('/^(w\d+)?h(\d+)/i', $params, $h);
 
-		$return = [];
-		$return['width'] = (isset($w[1]) && $w[1]) ? (int) $w[1] : 0;
-		$return['height'] = (isset($h[2]) && $h[2]) ? (int) $h[2] : 0;
-		$return['breakPoint'] = str_contains($params, '-br');
-		if (preg_match('/-sc([rca])/i', $params, $sc)) {
-			$return['scale'] = (isset($sc[1]) && $sc[1]) ? (string) $sc[1] : null;
-		}
-		if (preg_match('/-c([a-z]{2,5})/', $params, $c)) {
-			$return['crop'] = (isset($c[1]) && $c[1]) ? (string) $c[1] : null;
-		}
-		if (preg_match('/-px(\d+)/i', $params, $px)) {
-			$return['px'] = (isset($px[1]) && $px[1]) ? (int) $px[1] : null;
-		}
-		if (preg_match('/-py(\d+)/i', $params, $py)) {
-			$return['py'] = (isset($py[1]) && $py[1]) ? (int) $py[1] : null;
-		}
-
-		return new self($return);
+		return new self([
+			'width' => (isset($w[1]) && $w[1]) ? (int) $w[1] : 0,
+			'height' => (isset($h[2]) && $h[2]) ? (int) $h[2] : 0,
+			'breakPoint' => str_contains($params, '-br'),
+			'scale' => preg_match('/-sc([rca])/i', $params, $sc)
+				? ((isset($sc[1]) && $sc[1]) ? (string) $sc[1] : null)
+				: null,
+			'crop' => preg_match('/-c([a-z]{2,5})/', $params, $c)
+				? ((isset($c[1]) && $c[1]) ? (string) $c[1] : null)
+				: null,
+			'px' => preg_match('/-px(\d+)/i', $params, $px)
+				? ((isset($px[1]) && $px[1]) ? (int) $px[1] : null)
+				: null,
+			'py' => preg_match('/-py(\d+)/i', $params, $py)
+				? ((isset($py[1]) && $py[1]) ? (int) $py[1] : null)
+				: null,
+		]);
 	}
 
 

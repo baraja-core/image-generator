@@ -66,6 +66,7 @@ final class SmartCrop
 			return '';
 		}
 
+		/** @phpstan-ignore-next-line */
 		return (string) @shell_exec($command . ' 2>&1');
 	}
 }

@@ -181,7 +181,7 @@ final class ImageGenerator
 
 
 	/**
-	 * @param array<int, int|null> $size
+	 * @param array<int, int> $size
 	 */
 	public function cropNette(string $path, string $crop, array $size): void
 	{
@@ -279,7 +279,7 @@ final class ImageGenerator
 
 
 	/**
-	 * @param array<int, int> $size
+	 * @param array{0: int|null, 1: int|null} $size
 	 */
 	private function scale(string $absolutePath, string $scale, array $size): void
 	{
@@ -288,14 +288,13 @@ final class ImageGenerator
 		if ($scale === ImageGeneratorRequest::SCALE_RATIO) {
 			/** @var array{0: int, 1: int} $imageSize */
 			$imageSize = getimagesize($absolutePath);
-			if ($width === null || $height === null) {
-				if ($width === null) {
-					$needleRatio = $imageSize[0] / $imageSize[1];
-					$width = (int) ($needleRatio * $height);
-				} else {
-					$needleRatio = $imageSize[1] / $imageSize[0];
-					$height = (int) ($needleRatio * $width);
-				}
+			if ($width === null) {
+				$needleRatio = $imageSize[0] / $imageSize[1];
+				$width = (int) ($needleRatio * $height);
+			}
+			if ($height === null) {
+				$needleRatio = $imageSize[1] / $imageSize[0];
+				$height = (int) ($needleRatio * $width);
 			}
 
 			if (
