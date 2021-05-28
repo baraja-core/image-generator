@@ -3,7 +3,7 @@ name: Integrity check
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     types: [ assigned, opened, synchronize, reopened ]
   schedule:
