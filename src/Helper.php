@@ -216,16 +216,19 @@ final class Helper
 	}
 
 
+	/**
+	 * A PHP function must exist (for example, a native function or a function
+	 * which is added by an extension after compilation) and must not be marked as disabled.
+	 */
 	public static function functionIsAvailable(string $functionName): bool
 	{
 		static $disabled;
-		if (\function_exists($functionName) === true) {
-			$disableFunctions = ini_get('disable_functions');
-			if ($disabled === null && $disableFunctions) {
-				$disabled = explode(',', $disableFunctions);
+		if (function_exists($functionName) === true) {
+			if ($disabled === null) {
+				$disabled = explode(',', (string) ini_get('disable_functions'));
 			}
 
-			return \in_array($functionName, $disabled, true) === false;
+			return $disabled === [] || in_array($functionName, $disabled, true) === false;
 		}
 
 		return false;
