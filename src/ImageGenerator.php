@@ -172,7 +172,8 @@ final class ImageGenerator
 				. '"?',
 			);
 		}
-		if (Helper::functionIsAvailable($function = $formatToFunction[$format]) === false) {
+		$function = $formatToFunction[$format];
+		if (Helper::functionIsAvailable($function) === false) {
 			throw new \RuntimeException('Function "' . $function . '" is not available now.');
 		}
 
