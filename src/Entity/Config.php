@@ -10,6 +10,7 @@ final class Config
 	/** @var array{0: int, 1: int, 2: int} */
 	private array $defaultBackgroundColor;
 
+
 	/**
 	 * @param array<int, int> $defaultBackgroundColor
 	 * @param array<int, array<int, int>> $cropPoints
