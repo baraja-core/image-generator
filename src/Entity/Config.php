@@ -7,19 +7,25 @@ namespace Baraja\ImageGenerator;
 
 final class Config
 {
+	/** @var array{0: int, 1: int, 2: int} */
+	private array $defaultBackgroundColor;
+
 	/**
 	 * @param array<int, int> $defaultBackgroundColor
 	 * @param array<int, array<int, int>> $cropPoints
 	 */
 	public function __construct(
-		private array $defaultBackgroundColor,
+		array $defaultBackgroundColor,
 		private array $cropPoints,
 	) {
+		$defaultBackgroundColor += [255, 255, 255];
+		assert(isset($defaultBackgroundColor[0], $defaultBackgroundColor[1], $defaultBackgroundColor[2]));
+		$this->defaultBackgroundColor = $defaultBackgroundColor;
 	}
 
 
 	/**
-	 * @return array<int, int>
+	 * @return array{0: int, 1: int, 2: int}
 	 */
 	public function getDefaultBackgroundColor(): array
 	{
