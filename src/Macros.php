@@ -26,7 +26,15 @@ final class Macros extends MacroSet
 
 
 	/**
-	 * @param string[]|null $params
+	 * @param array{
+	 *    w?: int,
+	 *    width?: int,
+	 *    h?: int,
+	 *    height?: int,
+	 *    sc?: string,
+	 *    cr?: string,
+	 *    c?: string
+	 * }|null $params
 	 */
 	public static function renderMacroImg(?string $url = null, ?array $params = null): string
 	{
@@ -35,24 +43,40 @@ final class Macros extends MacroSet
 
 
 	/**
-	 * @param string[]|null $params
+	 * @param array{
+	 *    w?: int,
+	 *    width?: int,
+	 *    h?: int,
+	 *    height?: int,
+	 *    sc?: string,
+	 *    cr?: string,
+	 *    c?: string,
+	 *    alt?: string
+	 * }|null $params
 	 */
 	public static function renderMacroImageGenerator(?string $url = null, ?array $params = null): string
 	{
-		return '<img src="'
-			. ImageGenerator::from($url, $params ?? [])
-			. '" alt="'
-			. ($params['alt'] ?? 'Image')
-			. '">';
+		return sprintf('<img src="%s" alt="%s">',
+			ImageGenerator::from($url, $params ?? []),
+			$params['alt'] ?? 'Image',
+		);
 	}
 
 
 	/**
-	 * @param array<string, string|int>|null $params
+	 * @param array{
+	 *    w?: int,
+	 *    width?: int,
+	 *    h?: int,
+	 *    height?: int,
+	 *    sc?: string,
+	 *    cr?: string,
+	 *    c?: string
+	 * }|null $params
 	 */
 	public static function renderMacroImageGeneratorSrc(?string $url = null, ?array $params = null): string
 	{
-		return ' src="' . ImageGenerator::from($url, $params ?? []) . '"';
+		return sprintf(' src="%s"', ImageGenerator::from($url, $params ?? []));
 	}
 
 
@@ -62,7 +86,7 @@ final class Macros extends MacroSet
 	public function macroImg(MacroNode $node, PhpWriter $writer): string
 	{
 		return $writer->write(
-			'echo \Baraja\ImageGenerator\Macros::renderMacroImg(%node.word, %node.args)'
+			'echo \Baraja\ImageGenerator\Macros::renderMacroImg(%node.word, %node.args)',
 		);
 	}
 
@@ -73,7 +97,7 @@ final class Macros extends MacroSet
 	public function macroImageGenerator(MacroNode $node, PhpWriter $writer): string
 	{
 		return $writer->write(
-			'echo \Baraja\ImageGenerator\Macros::renderMacroImageGenerator(%node.word, %node.args)'
+			'echo \Baraja\ImageGenerator\Macros::renderMacroImageGenerator(%node.word, %node.args)',
 		);
 	}
 
@@ -84,7 +108,7 @@ final class Macros extends MacroSet
 	public function macroImageGeneratorSrc(MacroNode $node, PhpWriter $writer): string
 	{
 		return $writer->write(
-			'echo \Baraja\ImageGenerator\Macros::renderMacroImageGeneratorSrc(%node.word, %node.args)'
+			'echo \Baraja\ImageGenerator\Macros::renderMacroImageGeneratorSrc(%node.word, %node.args)',
 		);
 	}
 }

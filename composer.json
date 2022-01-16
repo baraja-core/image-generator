@@ -20,7 +20,8 @@
 		"nette/http": "^3.0",
 		"nette/di": "^3.0",
 		"nette/application": "^3.0",
-		"baraja-core/url": "^1.1"
+		"baraja-core/url": "^1.1",
+		"baraja-core/network": "^1.0"
 	},
 	"require-dev": {
 		"latte/latte": "^2.5",
@@ -40,7 +41,7 @@
 	},
 	"scripts": {
 		"phpstan": [
-			"vendor/bin/phpstan analyse src -c phpstan.neon --level 8 --no-progress"
+			"vendor/bin/phpstan analyse src -c phpstan.neon --level 9 --no-progress"
 		]
 	},
 	"minimum-stability": "stable"

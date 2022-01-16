@@ -55,7 +55,7 @@ final class ImageGeneratorExtension extends CompilerExtension
 						1920 => [320, 63, 2240, 800],
 						2560 => [0, 63, 2560, 800],
 					],
-				]
+				],
 			);
 
 
@@ -85,7 +85,7 @@ final class ImageGeneratorExtension extends CompilerExtension
 		$class->getMethod('initialize')->addBody(
 			'// image generator.' . "\n"
 			. '(function () {' . "\n"
-			. "\t" . 'if (preg_match(?, $this->getService(\'http.request\')->getUrl()->getRelativeUrl(), $parser) ' . "\n"
+			. "\t" . 'if (preg_match(?, $this->getService(\'http.request\')->getUrl()->getRelativeUrl(), $parser) === 1 ' . "\n"
 			. "\t\t" . '&& (isset($parser[\'dirname\']) === false || $parser[\'dirname\'] !== \'gallery\')) {' . "\n"
 			. "\t\t" . '$this->getService(?)->onStartup[] = function(' . Application::class . ' $a) {' . "\n"
 			. "\t\t\t" . '(new ' . ImageGeneratorRoute::class . ')->run($this->getService(\'http.request\'), $this->getService(?));' . "\n"

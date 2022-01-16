@@ -37,7 +37,15 @@ final class ImageGenerator
 	 * Fill in the URL address of the image (it can also be relative) with parameters
 	 * so that the path is valid for ImageGenerator.
 	 *
-	 * @param string[]|int[] $params
+	 * @param array{
+	 *    w?: int,
+	 *    width?: int,
+	 *    h?: int,
+	 *    height?: int,
+	 *    sc?: string,
+	 *    cr?: string,
+	 *    c?: string
+	 * } $params
 	 */
 	public static function from(?string $url, array $params): string
 	{
@@ -46,11 +54,11 @@ final class ImageGenerator
 		} elseif (preg_match(
 			'/^(?<prefix>.*\/)(?<filename>.+?)(__[^_]*?_[a-z0-9]{6})(?<suffix>\.[^.]+)$/',
 			$url,
-			$parser
-		)) {
+			$parser,
+		) === 1) {
 			$url = $parser['prefix'] . $parser['filename'] . $parser['suffix'];
 		}
-		if (preg_match('/(?<prefix>.*\/)?(?<filename>[\w._-]+)\.(?<suffix>.+)$/', $url, $parser)) {
+		if (preg_match('/(?<prefix>.*\/)?(?<filename>[\w._-]+)\.(?<suffix>.+)$/', $url, $parser) === 1) {
 			$param = Helper::paramsToString($params);
 			return ($parser['prefix'] ?? '') . $parser['filename']
 				. ($param !== '' ? '__' . $param . '_' . Helper::generateHash($param) : '')
@@ -80,7 +88,7 @@ final class ImageGenerator
 
 		$this->copySourceFileToTemp(
 			$sourceFile,
-			$tempFile = (string) preg_replace('/(.+?)(\.\w+)$/', '$1_temp$2', $targetFile)
+			$tempFile = (string) preg_replace('/(.+?)(\.\w+)$/', '$1_temp$2', $targetFile),
 		);
 
 		if ($this->request->isBreakPoint()) {
@@ -94,25 +102,25 @@ final class ImageGenerator
 					$this->request->getHeight(),
 				],
 			);
-		} elseif ($this->request->getCrop()) {
+		} elseif ($this->request->getCrop() !== null) {
 			if ($this->request->getCrop() === ImageGeneratorRequest::CROP_SMART) {
 				$this->cropSmart($tempFile, $this->request->getWidth(), $this->request->getHeight());
 			} else {
 				$this->cropNette(
 					$tempFile,
-					(string) $this->request->getCrop(),
+					$this->request->getCrop(),
 					[
 						$this->request->getWidth(),
 						$this->request->getHeight(),
 					],
 				);
 			}
-		} elseif ($this->request->getPx() || $this->request->getPy()) {
+		} elseif ($this->request->getPx() !== null && $this->request->getPy() !== null) {
 			$this->percentagesShift(
 				$tempFile,
 				[
-					'px' => (int) $this->request->getPx(),
-					'py' => (int) $this->request->getPy(),
+					'px' => $this->request->getPx(),
+					'py' => $this->request->getPy(),
 				],
 				[
 					$this->request->getWidth(),
@@ -182,7 +190,7 @@ final class ImageGenerator
 
 
 	/**
-	 * @param array<int, int> $size
+	 * @param array{0: int|null, 1: int|null} $size
 	 */
 	public function cropNette(string $path, string $crop, array $size): void
 	{
@@ -192,7 +200,7 @@ final class ImageGenerator
 			$image = $this->loadNetteImage($path),
 			$crop,
 			[$image->getWidth(), $image->getHeight()],
-			[$width, $height]
+			[$width, $height],
 		);
 		$this->saveNetteImage($path, $image);
 	}
@@ -249,12 +257,6 @@ final class ImageGenerator
 		$bX = abs($cropPoints[$breakPoint][2] - $cropPoints[$breakPoint][0]);
 		$bY = abs($cropPoints[$breakPoint][3] - $cropPoints[$breakPoint][1]);
 
-		/**
-		 * @var int $aX
-		 * @var int $aY
-		 * @var int $bX
-		 * @var int $bY
-		 */
 		$this->saveNetteImage($absolutePath, $this->loadNetteImage($absolutePath)->crop($aX, $aY, $bX, $bY));
 	}
 
@@ -262,7 +264,7 @@ final class ImageGenerator
 	private function loadNetteImage(string $path): Image
 	{
 		try {
-			return Image::fromFile($path ?: $this->targetPath);
+			return Image::fromFile($path !== '' ? $path : $this->targetPath);
 		} catch (\Throwable $e) {
 			throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
 		}
@@ -272,7 +274,7 @@ final class ImageGenerator
 	private function saveNetteImage(string $path, Image $image): void
 	{
 		try {
-			$image->save($path ?: $this->targetPath);
+			$image->save($path !== '' ? $path : $this->targetPath);
 		} catch (ImageException $e) {
 			throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
 		}
@@ -285,6 +287,9 @@ final class ImageGenerator
 	private function scale(string $absolutePath, string $scale, array $size): void
 	{
 		[$width, $height] = $size;
+		if ($width === null && $height === null) {
+			throw new \LogicException('Needle scale size must define width or height, but none is defined.');
+		}
 
 		if ($scale === ImageGeneratorRequest::SCALE_RATIO) {
 			/** @var array{0: int, 1: int} $imageSize */
@@ -324,7 +329,7 @@ final class ImageGenerator
 					->resize(
 						$width,
 						$height,
-						Image::SHRINK_ONLY | Image::STRETCH
+						Image::SHRINK_ONLY | Image::STRETCH,
 					),
 			);
 		}
@@ -339,17 +344,17 @@ final class ImageGenerator
 
 
 	/**
-	 * @param array<int, int> $original
-	 * @param array<int, int> $needle
+	 * @param array{0: int, 1: int} $original
+	 * @param array{0: int|null, 1: int|null} $needle
 	 */
 	private function cropByCorner(Image $image, string $corner, array $original, array $needle): void
 	{
 		$corner = strtolower($corner);
-		if (preg_match('/^([tmb])([lcr])$/', $corner, $cornerParser)) {
+		if (preg_match('/^([tmb])([lcr])$/', $corner, $cornerParser) === 1) {
 			$leftCrop = $cornerParser[0] ?? 'm';
 			$topCrop = $cornerParser[1] ?? 'c';
 		} else {
-			throw new \InvalidArgumentException('Corner "' . $corner . '" is not in valid format.');
+			throw new \InvalidArgumentException(sprintf('Corner "%s" is not in valid format.', $corner));
 		}
 
 		[$originalWidth, $originalHeight] = $original;
@@ -392,8 +397,8 @@ final class ImageGenerator
 	/**
 	 * Find best scale ratio of sizes for crop
 	 *
-	 * @param array<int, int|null> $original
-	 * @param array<int, int|null> $needle
+	 * @param array{0: int, 1: int} $original
+	 * @param array{0: int|null, 1: int|null} $needle
 	 */
 	private function getMaxSizeForCrop(array $original, array $needle): MaxSizeForCropEntity
 	{
@@ -402,12 +407,14 @@ final class ImageGenerator
 
 		$needleWidthIsGreater = $needleWidth > $needleHeight;
 		if ($needleWidth === null || $needleHeight === null) {
-			if ($needleWidth === null) {
+			if ($needleWidth === null && $needleHeight !== null) {
 				$needleRatio = $originalWidth / $originalHeight;
 				$needleWidth = (int) ($needleRatio * $needleHeight);
-			} else {
+			} elseif ($needleHeight === null && $needleWidth !== null) {
 				$needleRatio = $originalHeight / $originalWidth;
 				$needleHeight = (int) ($needleRatio * $needleWidth);
+			} else {
+				throw new \LogicException('Needle size must define width or height, but none is defined.');
 			}
 		} else {
 			$needleRatio = !$needleWidthIsGreater
@@ -440,8 +447,8 @@ final class ImageGenerator
 
 
 	/**
-	 * @param int[] $xy
-	 * @param array<int, int> $needle
+	 * @param array{px: int, py: int} $xy
+	 * @param array{0: int, 1: int} $needle
 	 */
 	private function percentagesShift(string $absolutePath, array $xy, array $needle): void
 	{

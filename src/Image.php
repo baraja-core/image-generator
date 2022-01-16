@@ -7,7 +7,6 @@ namespace Baraja\ImageGenerator;
 
 use Baraja\Url\Url;
 use Nette\Application\BadRequestException;
-use Nette\Http\Request;
 use Nette\Utils\FileSystem;
 
 final class Image
@@ -25,7 +24,6 @@ final class Image
 
 	public function __construct(
 		private string $rootDir,
-		private Request $request,
 		private ImageGenerator $imageGenerator,
 		private Config $config,
 	) {
@@ -65,7 +63,7 @@ final class Image
 		$this->imageGenerator->generate(
 			ImageGeneratorRequest::createFromParams($request->getParams()),
 			$this->tempPath,
-			$this->cachePath
+			$this->cachePath,
 		);
 
 		if (str_contains(PHP_OS_FAMILY, 'WIN')) { // Win bug
@@ -125,47 +123,52 @@ final class Image
 
 		$absoluteFilePath = null;
 		if (is_dir($absoluteFileDirPath) === true) {
-			foreach (scandir($absoluteFileDirPath, 1) ?: [] as $item) {
+			$fileList = scandir($absoluteFileDirPath, 1);
+			foreach (is_array($fileList) ? $fileList : [] as $item) {
 				if (
-					(string) preg_replace('@\.(?<extension>[a-zA-Z]+)$@', '', $item) === $request->getBasename()
-					&& (!$absoluteFilePath || str_ends_with($item, $request->getExtension()))
+					((string) preg_replace('@\.(?<extension>[a-zA-Z]+)$@', '', $item) === $request->getBasename())
+					&& ($absoluteFilePath === null || str_ends_with($item, $request->getExtension()))
 				) {
 					$absoluteFilePath = (string) preg_replace(
 						'@/+@',
 						'/',
 						$this->rootDir . '/www/'
 						. str_replace($request->getBasename() . '.' . $request->getExtension(), '', $filePath)
-						. '/' . $item
+						. '/' . $item,
 					);
 				}
 			}
 		}
-		if (!$absoluteFilePath && $request->getParams() && !str_contains($request->getDirname(), '..')) {
+		if (
+			$absoluteFilePath === null
+			&& $request->getParams() !== ''
+			&& str_contains($request->getDirname(), '..') === false
+		) {
 			$urls = [];
 			foreach (['jpg', 'png', 'gif'] as $ext) {
-				$urls[$ext] = Url::get()->getBaseUrl()
-					. '/' . $request->getDirname()
-					. '/' . $request->getBasename()
-					. '.' . $ext;
+				$urls[$ext] = sprintf('%s/%s/%s/%s',
+					Url::get()->getBaseUrl(),
+					$request->getDirname(),
+					$request->getBasename(),
+					$ext,
+				);
 			}
 
 			foreach ($urls as $url) {
-				$this->createDir(
-					\dirname(
-						$cacheDownloadFilePath = $this->rootDir
-							. '/www/_cache/_downloaded/'
-							. $request->getDirname()
-							. '/' . basename($url)
-					)
+				$cacheDownloadFilePath = sprintf('%s/www/_cache/_downloaded/%s/%s',
+					$this->rootDir,
+					$request->getDirname(),
+					basename($url),
 				);
+				$this->createDir(dirname($cacheDownloadFilePath));
 
 				try {
 					if (is_file($cacheDownloadFilePath) === false) {
-						if (!@file_put_contents($cacheDownloadFilePath, $this->getImageContentFromUrl($url, 2))) {
-							throw new \RuntimeException(
-								'Image has been downloaded from URL "' . $url . '", '
-								. 'but unable to save into cache: ' . Helper::getLastErrorMessage(),
-							);
+						if (@file_put_contents($cacheDownloadFilePath, $this->getImageContentFromUrl($url, 2)) === false) {
+							throw new \RuntimeException(sprintf('Image has been downloaded from URL "%s", but unable to save into cache: %s',
+								$url,
+								Helper::getLastErrorMessage(),
+							));
 						}
 						$absoluteFilePath = $cacheDownloadFilePath;
 					} elseif (filesize($cacheDownloadFilePath) > 1) {
@@ -201,7 +204,7 @@ final class Image
 
 		$absoluteCacheFilePath = $absoluteCachePath . '/' . $fileName;
 
-		if ($absoluteFilePath) {
+		if ($absoluteFilePath !== null) {
 			$this->sourcePath = $absoluteFilePath;
 			$this->tempPath = (string) preg_replace('@/+@', '/', $absoluteTempFilePath);
 			$this->cachePath = (string) preg_replace('@/+@', '/', $absoluteCacheFilePath);
@@ -234,18 +237,21 @@ final class Image
 				CURLOPT_USERAGENT => $_SERVER['HTTP_USER_AGENT']
 					?? 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 '
 					. '(KHTML, like Gecko) Chrome/23.0.1271.1 Safari/537.11',
-			]
+			],
 		);
 
 		$return = (string) curl_exec($ch);
 		$httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$httpStatusCode = is_numeric($httpStatusCode) ? (int) $httpStatusCode : 500;
 		curl_close($ch);
 
-		if ($httpStatusCode !== 200 || !$return || \strlen($return) < $minSize) {
+		if ($httpStatusCode !== 200 || $return === '' || \strlen($return) < $minSize) {
 			throw new \RuntimeException(
-				'Image on URL does not exist '
-				. '(HTTP code: #' . $httpStatusCode . ', responseSize: ' . \strlen($return) . ')',
-				$httpStatusCode ?: 404,
+				sprintf('Image on URL does not exist (HTTP code: #%d, responseSize: %d)',
+					$httpStatusCode,
+					strlen($return),
+				),
+				$httpStatusCode === 0 ? 404 : $httpStatusCode,
 			);
 		}
 
@@ -266,12 +272,12 @@ final class Image
 		}
 
 		clearstatcache();
-		if (
-			is_file($this->tempPath) === true
-			&& abs(time() - filemtime($this->tempPath)) > 30
-		) {
-			@unlink($this->tempPath);
-			clearstatcache();
+		if (is_file($this->tempPath) === true) {
+			$tempFileTime = filemtime($this->tempPath);
+			if ($tempFileTime !== false && abs(time() - $tempFileTime) > 30) {
+				@unlink($this->tempPath);
+				clearstatcache();
+			}
 		}
 	}
 
@@ -302,24 +308,25 @@ final class Image
 			);
 		}
 
-		throw new BadRequestException(
-			'File "' . $loadPath . '" is not in cache path.'
-			. "\n" . Helper::getLastErrorMessage(),
-		);
+		throw new BadRequestException(sprintf('File "%s" is not in cache path. %s',
+			$loadPath,
+			Helper::getLastErrorMessage(),
+		));
 	}
 
 
 	/** @return string (image/jpeg, image/png, image/gif) */
 	private function getContentTypeByFilename(string $cachePath): string
 	{
-		$contentType = null;
-		if (substr($cachePath, -4) === '.png') {
+		if (str_ends_with($cachePath, '.png')) {
 			$contentType = 'image/png';
-		} elseif (substr($cachePath, -4) === '.gif') {
+		} elseif (str_ends_with($cachePath, '.gif')) {
 			$contentType = 'image/gif';
+		} else {
+			$contentType = 'image/jpeg';
 		}
 
-		return $contentType ?? 'image/jpeg';
+		return $contentType;
 	}
 
 
@@ -355,8 +362,8 @@ final class Image
 
 		/** @var \GdImage $src */
 		$src = imagecreatefrompng($path);
-		$width = (int) imagesx($src);
-		$height = (int) imagesy($src);
+		$width = imagesx($src);
+		$height = imagesy($src);
 		/** @var \GdImage $bg */
 		$bg = imagecreatetruecolor($width, $height);
 		$backgroundColor = (int) imagecolorallocate($bg, $defaultColor[0], $defaultColor[1], $defaultColor[2]);
@@ -383,13 +390,14 @@ final class Image
 	{
 		$md5CacheFile = md5_file($this->cachePath);
 		$pathInfo = pathinfo($this->cachePath);
-		foreach (scandir($pathInfo['dirname'], 1) ?: [] as $item) {
+		$pathInfoList = scandir($pathInfo['dirname'], 1);
+		foreach (is_array($pathInfoList) ? $pathInfoList : [] as $item) {
 			if (
 				preg_match(
 					'/^(?<filename>.+)(?<suffix>_(?<md5>.{32})\.md5)$/',
 					$item,
-					$parser
-				)
+					$parser,
+				) === 1
 				&& $parser['md5'] === $md5CacheFile
 			) {
 				unlink($this->cachePath);

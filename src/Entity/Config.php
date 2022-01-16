@@ -13,7 +13,7 @@ final class Config
 
 	/**
 	 * @param array<int, int> $defaultBackgroundColor
-	 * @param array<int, array<int, int>> $cropPoints
+	 * @param array<int, array{0: int, 1: int, 2: int, 3: int}> $cropPoints
 	 */
 	public function __construct(
 		array $defaultBackgroundColor,
@@ -35,7 +35,7 @@ final class Config
 
 
 	/**
-	 * @return array<int, array<int, int>>
+	 * @return array<int, array{0: int, 1: int, 2: int, 3: int}>
 	 */
 	public function getCropPoints(): array
 	{

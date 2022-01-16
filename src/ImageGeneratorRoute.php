@@ -21,7 +21,7 @@ final class ImageGeneratorRoute
 
 	public static function renderPlaceholder(string $params, ?string $message = null): void
 	{
-		if (preg_match('/^(?:w(?<width>\d+))?(?:h(?<height>\d+))?/', $params, $paramsParser)) {
+		if (preg_match('/^(?:w(?<width>\d+))?(?:h(?<height>\d+))?/', $params, $paramsParser) === 1) {
 			$width = (int) ($paramsParser['width'] ?? 300);
 			$height = (int) ($paramsParser['height'] ?? 300);
 		} else {
@@ -59,7 +59,7 @@ final class ImageGeneratorRoute
 			$message = Strings::toAscii($message);
 			$line = (int) ($width / 7);
 
-			for ($i = 0; preg_match('/^(.{' . $line . '})(.*)$/', $message, $messageParser); $i++) {
+			for ($i = 0; preg_match('/^(.{' . $line . '})(.*)$/', $message, $messageParser) === 1; $i++) {
 				imagestring($image, 2, 8, (int) ($y + 10 + $i * 15), $messageParser[1], $textColor);
 				if ($i > 30 || trim($message = $messageParser[2]) === '') {
 					break;
@@ -139,15 +139,13 @@ final class ImageGeneratorRoute
 
 			Debugger::log($e, ILogger::CRITICAL);
 
-			$statusCode = $e->getCode();
+			$statusCode = (int) $e->getCode();
 			if ($statusCode === 404) {
 				Helper::setHttpStatus404();
 			} else {
 				Helper::setHttpStatus400();
 			}
-			if (!self::isDebugRequest()) {
-				self::renderPlaceholder($params, $e->getMessage());
-			}
+			self::renderPlaceholder($params, $e->getMessage());
 			if ($e instanceof \Exception) {
 				throw new \ErrorException($error, $statusCode);
 			}

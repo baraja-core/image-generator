@@ -16,10 +16,10 @@ final class SmartCrop
 	public function crop(string $path, ?int $width, ?int $height, \Nette\Utils\Image $image): void
 	{
 		if ($width === null) {
-			$width = $height ?: 150;
+			$width = $height < 1 ? 150 : $height;
 		}
 		if ($height === null) {
-			$height = $width ?: 150;
+			$height = $width < 1 ? 150 : $width;
 		}
 
 		if ($width <= $image->getWidth() || $height <= $image->getHeight()) {
@@ -32,15 +32,16 @@ final class SmartCrop
 			}
 
 			if ($smartCropPath !== null) {
-				$commandResult = $this->shellExec(
-					$smartCropPath . ' ' . $path
-					. ($width ? ' --width ' . $width : '')
-					. ($height ? ' --height ' . $height : '')
-					. ' ' . $path
-				);
+				$commandResult = $this->shellExec(sprintf('%s %s%s%s %s',
+					$smartCropPath,
+					$path,
+					$width > 0 ? ' --width ' . $width : '',
+					$height > 0 ? ' --height ' . $height : '',
+					$path,
+				));
 
 				if (
-					$commandResult
+					$commandResult !== ''
 					&& (
 						str_contains($commandResult, 'Error')
 						|| str_contains($commandResult, 'Exception')

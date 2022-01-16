@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\ImageGenerator;
 
 
+use Baraja\Network\Ip;
 use Baraja\Url\Url;
 use Nette\Http\Request;
 
@@ -57,10 +58,10 @@ final class Helper
 	 */
 	public static function invalidateCache(string $path, ?string $wwwDir = null, bool $recursive = false): int
 	{
-		if (preg_match('/\.\./', $path)) {
+		if (preg_match('/\.\./', $path) === 1) {
 			throw new \InvalidArgumentException('Path "' . $path . '" could not contains \'..\'.');
 		}
-		if ($wwwDir !== null && preg_match('/\.\./', $wwwDir)) {
+		if ($wwwDir !== null && preg_match('/\.\./', $wwwDir) === 1) {
 			throw new \InvalidArgumentException('Param $wwwDir "' . $wwwDir . '" could not contains \'..\'.');
 		}
 
@@ -76,7 +77,7 @@ final class Helper
 		$cachePath = $wwwDir . '/_cache' . $path;
 		$cachePathDirName = is_file($wwwDir . $path) ? dirname($cachePath) : $cachePath;
 		$files = [];
-		if (preg_match('/(?<baseName>[^\/]+)\.[^.]+$/', $cachePath, $cachePathWithoutSuffix)) {
+		if (preg_match('/(?<baseName>[^\/]+)\.[^.]+$/', $cachePath, $cachePathWithoutSuffix) === 1) {
 			/** @phpstan-ignore-next-line */
 			foreach (glob($cachePathDirName . '/' . $cachePathWithoutSuffix['baseName'] . '*') as $filePath) {
 				$files[] = $filePath;
@@ -96,7 +97,7 @@ final class Helper
 
 		$countDeletedFiles = 0;
 		foreach ($files as $file) {
-			if (preg_match('/\.(jpg|jpeg|png|gif|md5)$/i', $file)) {
+			if (preg_match('/\.(jpg|jpeg|png|gif|md5)$/i', $file) === 1) {
 				unlink($file);
 				$countDeletedFiles++;
 			}
@@ -107,25 +108,33 @@ final class Helper
 
 
 	/**
-	 * @param mixed[] $params
+	 * @param array{
+	 *    w?: int,
+	 *    width?: int,
+	 *    h?: int,
+	 *    height?: int,
+	 *    sc?: string,
+	 *    cr?: string,
+	 *    c?: string
+	 * } $params
 	 */
 	public static function paramsToString(array $params): string
 	{
 		$w = $params['w'] ?? $params['width'] ?? null;
 		$h = $params['h'] ?? $params['height'] ?? null;
-		if ($w !== null && $w > 0 && $h && $h > 0) {
-			$return = 'w' . $w . 'h' . $h;
+		if ($w !== null && $w > 0 && $h !== null && $h > 0) {
+			$return = sprintf('w%dh%d', $w, $h);
 			if (isset($params['sc']) === true) {
-				$return .= '-sc' . $params['sc'];
+				$return .= sprintf('-sc%s', $params['sc']);
 			}
 			if (isset($params['cr']) === true || isset($params['c']) === true) {
-				$return .= '-c' . ($params['cr'] ?? $params['c']);
+				$return .= sprintf('-c%s', $params['cr'] ?? $params['c']);
 			}
 
 			return $return;
 		}
 
-		return '';
+		throw new \InvalidArgumentException('Image width and height is always mandatory.');
 	}
 
 
@@ -141,7 +150,7 @@ final class Helper
 				'',
 				Url::get()->getCurrentUrl(),
 			),
-			'/'
+			'/',
 		);
 	}
 
@@ -150,64 +159,32 @@ final class Helper
 	{
 		static $is;
 		if ($is === null) {
-			if (self::userIp() === '127.0.0.1') {
+			if (Ip::get() === '127.0.0.1') {
 				return $is = true;
 			}
 			$localHosts = ['localhost', '[^\/]+\.l', '127\.0\.0\.1'];
+			$localHostsString = implode('|', $localHosts);
 			$allowedPorts = ['80', '443', '3000'];
-			$is = (bool) preg_match(
-				'/^https?:\/\/(' . implode('|', $localHosts) . ')(:(?:' . implode(
-					'|',
-					$allowedPorts
-				) . '))?(?:\/|$)/',
+			$allowedPortsString = implode('|', $allowedPorts);
+			$is = preg_match(
+				'/^https?:\/\/(' . $localHostsString . ')(:(?:' . $allowedPortsString . '))?(?:\/|$)/',
 				Url::get()->getCurrentUrl(),
-			);
+			) === 1;
 		}
 
 		return $is;
 	}
 
 
-	public static function userIp(): string
-	{
-		static $ip = null;
-		if ($ip === null) {
-			if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) { // Cloudflare support
-				$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
-			} elseif (isset($_SERVER['REMOTE_ADDR']) === true) {
-				$ip = $_SERVER['REMOTE_ADDR'];
-				if ($ip === '127.0.0.1') {
-					if (isset($_SERVER['HTTP_X_REAL_IP'])) {
-						$ip = $_SERVER['HTTP_X_REAL_IP'];
-					} elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-						$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-					}
-				}
-			} else {
-				$ip = '127.0.0.1';
-			}
-			if (in_array($ip, ['::1', '0.0.0.0', 'localhost'], true)) {
-				$ip = '127.0.0.1';
-			}
-			$filter = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
-			if ($filter === false) {
-				$ip = '127.0.0.1';
-			}
-		}
-
-		return $ip;
-	}
-
-
 	public static function getLastErrorMessage(): ?string
 	{
 		$lastError = error_get_last();
-		if ($lastError && isset($lastError['message'])) {
+		if ($lastError !== null) {
 			return trim(
 				(string) preg_replace(
 					'/\s*\[<a[^>]+>[a-z0-9.\-_()]+<\/a>]\s*/i',
 					' ',
-					(string) $lastError['message'],
+					$lastError['message'],
 				),
 			);
 		}
