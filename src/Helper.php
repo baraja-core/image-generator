@@ -127,8 +127,9 @@ final class Helper
 			if (isset($params['sc']) === true) {
 				$return .= sprintf('-sc%s', $params['sc']);
 			}
-			if (isset($params['cr']) === true || isset($params['c']) === true) {
-				$return .= sprintf('-c%s', $params['cr'] ?? $params['c']);
+			$c = $params['cr'] ?? $params['c'] ?? null;
+			if ($c !== null) {
+				$return .= sprintf('-c%s', $c);
 			}
 
 			return $return;
