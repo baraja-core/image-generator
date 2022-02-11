@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\ImageGenerator;
 
 
+use Baraja\Url\Url;
 use Nette\Application\Application;
 use Nette\Bridges\ApplicationLatte\ILatteFactory;
 use Nette\DI\CompilerExtension;
@@ -36,7 +37,6 @@ final class ImageGeneratorExtension extends CompilerExtension
 
 		$builder->addDefinition($this->prefix('image'))
 			->setFactory(Image::class)
-			->setArgument('rootDir', dirname($builder->parameters['wwwDir']))
 			->addSetup('?->setDebugMode(?)', ['@self', $config['debugMode'] ?? false]);
 
 		$builder->addDefinition($this->prefix('config'))
@@ -84,11 +84,11 @@ final class ImageGeneratorExtension extends CompilerExtension
 
 		$class->getMethod('initialize')->addBody(
 			'// image generator.' . "\n"
-			. '(function () {' . "\n"
-			. "\t" . 'if (preg_match(?, $this->getService(\'http.request\')->getUrl()->getRelativeUrl(), $parser) === 1 ' . "\n"
+			. '(function (): void {' . "\n"
+			. "\t" . 'if (preg_match(?, \\' . Url::class . '::get()->getRelativeUrl(false), $parser) === 1 ' . "\n"
 			. "\t\t" . '&& (isset($parser[\'dirname\']) === false || $parser[\'dirname\'] !== \'gallery\')) {' . "\n"
-			. "\t\t" . '$this->getService(?)->onStartup[] = function(' . Application::class . ' $a) {' . "\n"
-			. "\t\t\t" . '(new ' . ImageGeneratorRoute::class . ')->run($this->getService(\'http.request\'), $this->getService(?));' . "\n"
+			. "\t\t" . '$this->getService(?)->onStartup[] = function(' . Application::class . ' $a): void {' . "\n"
+			. "\t\t\t" . '(new ' . ImageGeneratorRoute::class . ')->run($this->getService(?));' . "\n"
 			. "\t\t" . '};' . "\n"
 			. "\t" . '}' . "\n"
 			. '})();',
