@@ -23,11 +23,9 @@ final class Image
 
 
 	public function __construct(
-		private string $rootDir,
 		private ImageGenerator $imageGenerator,
 		private Config $config,
 	) {
-		$this->rootDir = rtrim($rootDir, '/');
 	}
 
 
@@ -102,119 +100,20 @@ final class Image
 
 	private function setupPaths(ImageRequest $request): void
 	{
-		$fileName = $request->getBasename()
-			. '__' . $request->getParams()
-			. '_' . $request->getHash()
-			. '.' . $request->getExtension();
-
-		$filePath = $request->getDirname()
-			. '/' . $request->getBasename()
-			. '.' . $request->getExtension();
-
-		$absoluteFileDirPath = (string) preg_replace(
-			'@/+@',
-			'/',
-			$this->rootDir . '/www/' . str_replace(
-				$request->getBasename() . '.' . $request->getExtension(),
-				'',
-				$filePath,
-			),
-		);
-
-		$absoluteFilePath = null;
-		if (is_dir($absoluteFileDirPath) === true) {
-			$fileList = scandir($absoluteFileDirPath, 1);
-			foreach (is_array($fileList) ? $fileList : [] as $item) {
-				if (
-					((string) preg_replace('@\.(?<extension>[a-zA-Z]+)$@', '', $item) === $request->getBasename())
-					&& ($absoluteFilePath === null || str_ends_with($item, $request->getExtension()))
-				) {
-					$absoluteFilePath = (string) preg_replace(
-						'@/+@',
-						'/',
-						$this->rootDir . '/www/'
-						. str_replace($request->getBasename() . '.' . $request->getExtension(), '', $filePath)
-						. '/' . $item,
-					);
-				}
-			}
-		}
-		if (
-			$absoluteFilePath === null
-			&& $request->getParams() !== ''
-			&& str_contains($request->getDirname(), '..') === false
-		) {
-			$urls = [];
-			foreach (['jpg', 'png', 'gif'] as $ext) {
-				$urls[$ext] = sprintf('%s/%s/%s/%s',
-					Url::get()->getBaseUrl(),
-					$request->getDirname(),
-					$request->getBasename(),
-					$ext,
-				);
-			}
-
-			foreach ($urls as $url) {
-				$cacheDownloadFilePath = sprintf('%s/www/_cache/_downloaded/%s/%s',
-					$this->rootDir,
-					$request->getDirname(),
-					basename($url),
-				);
-				$this->createDir(dirname($cacheDownloadFilePath));
-
-				try {
-					if (is_file($cacheDownloadFilePath) === false) {
-						if (@file_put_contents($cacheDownloadFilePath, $this->getImageContentFromUrl($url, 2)) === false) {
-							throw new \RuntimeException(sprintf('Image has been downloaded from URL "%s", but unable to save into cache: %s',
-								$url,
-								Helper::getLastErrorMessage(),
-							));
-						}
-						$absoluteFilePath = $cacheDownloadFilePath;
-					} elseif (filesize($cacheDownloadFilePath) > 1) {
-						$absoluteFilePath = $cacheDownloadFilePath;
-						break;
-					}
-				} catch (\Throwable) {
-					@file_put_contents($cacheDownloadFilePath, '');
-					continue;
-				}
-			}
-		}
-
-		$fileSuffix = $request->getDirname()
-			. '/' . $request->getBasename()
-			. '.' . $request->getExtension();
-
-		$cachePath = '_cache/' . $fileSuffix;
-		$tempPath = '_cache/_temp/' . $fileSuffix;
-		$absoluteTempPath = $this->rootDir . '/www/'
-			. str_replace(
-				$request->getBasename() . '.' . $request->getExtension(),
-				'',
-				$tempPath,
-			);
-		$absoluteTempFilePath = $absoluteTempPath . '/' . $fileName;
-		$absoluteCachePath = $this->rootDir . '/www/'
-			. str_replace(
-				$request->getBasename() . '.' . $request->getExtension(),
-				'',
-				$cachePath,
-			);
-
-		$absoluteCacheFilePath = $absoluteCachePath . '/' . $fileName;
-
-		if ($absoluteFilePath !== null) {
-			$this->sourcePath = $absoluteFilePath;
-			$this->tempPath = (string) preg_replace('@/+@', '/', $absoluteTempFilePath);
-			$this->cachePath = (string) preg_replace('@/+@', '/', $absoluteCacheFilePath);
-		} else {
-			throw new \ErrorException(
-				'Source file "' . $filePath . '" does not exist.'
+		$absoluteSourceFilePath = $request->getSourceFileAbsolutePath();
+		if ($absoluteSourceFilePath === null) {
+			throw new \InvalidArgumentException(
+				sprintf('Source file "%s" does not exist.', $request->getFilePath())
 				. "\n" . Helper::getLastErrorMessage(),
 				404,
 			);
 		}
+
+		$fileSuffix = $request->getFileSuffix(true);
+
+		$this->sourcePath = $absoluteSourceFilePath;
+		$this->tempPath = sprintf('%s/_cache/_temp/%s', Helper::getWwwDir(), $fileSuffix);
+		$this->cachePath = sprintf('%s/_cache/%s', Helper::getWwwDir(), $fileSuffix);
 	}
 
 
