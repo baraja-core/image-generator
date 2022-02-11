@@ -6,6 +6,9 @@ namespace Baraja\ImageGenerator;
 
 
 use Baraja\Network\Ip;
+use Baraja\PathResolvers\Resolvers\RootDirResolver;
+use Baraja\PathResolvers\Resolvers\VendorResolver;
+use Baraja\PathResolvers\Resolvers\WwwDirResolver;
 use Baraja\Url\Url;
 use Nette\Http\Request;
 
@@ -68,7 +71,7 @@ final class Helper
 		$path = '/' . ltrim($path, '/');
 
 		if ($wwwDir === null) {
-			$wwwDir = dirname(__DIR__, 4) . '/www/';
+			$wwwDir = self::getWwwDir();
 		}
 		if (!file_exists($wwwDir . $path)) {
 			throw new \InvalidArgumentException('File or directory "' . $wwwDir . $path . '" does not exist.');
@@ -255,5 +258,16 @@ final class Helper
 			$statusCode,
 			new \RuntimeException($file, $line),
 		);
+	}
+
+
+	public static function getWwwDir(): string
+	{
+		static $cache;
+		if ($cache === null) {
+			$cache = (new WwwDirResolver(new RootDirResolver(new VendorResolver)))->get();
+		}
+
+		return $cache;
 	}
 }
