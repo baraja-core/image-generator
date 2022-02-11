@@ -22,7 +22,7 @@
 		"nette/application": "^3.0",
 		"baraja-core/url": "^1.1",
 		"baraja-core/network": "^1.0",
-                "baraja-core/path-resolvers": "^1.0"
+		"baraja-core/path-resolvers": "^1.0"
 	},
 	"require-dev": {
 		"latte/latte": "^2.5",
