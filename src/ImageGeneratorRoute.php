@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Baraja\ImageGenerator;
 
 
-use Nette\Http\Request;
+use Baraja\Url\Url;
 use Nette\Utils\Strings;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -111,15 +111,23 @@ final class ImageGeneratorRoute
 	}
 
 
-	public function run(Request $request, Image $image): void
+	public function run(Image $image): void
 	{
+		$url = Url::get()->getRelativeUrl(false);
 		preg_match(
 			self::PATTERN,
-			$request->getUrl()->getRelativeUrl(),
+			$url,
 			$routeParser,
 		);
 
 		[, $dirname, $basename, $params, $hash, $extension] = $routeParser;
+		if ($dirname === 'image-generator-proxy') {
+			$proxyPath = Proxy::getStoragePath($basename, pathinfo($url)['extension']);
+			if (preg_match('~^(.+)/([^/.]+?)\.[a-zA-Z]+$~', $proxyPath, $proxyPathParser) === 1) {
+				$dirname = $proxyPathParser[1] ?? '';
+				$basename = $proxyPathParser[2] ?? '';
+			}
+		}
 
 		try {
 			session_write_close();
