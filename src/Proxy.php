@@ -14,7 +14,7 @@ final class Proxy
 
 	public static function save(string $url, string $hash): void
 	{
-		$path = self::getStoragePath($hash, pathinfo($url)['extension']);
+		$path = self::getStoragePath($hash, pathinfo($url)['extension'] ?? null);
 		if (is_file($path)) {
 			return;
 		}
