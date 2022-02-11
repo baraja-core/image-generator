@@ -36,6 +36,8 @@ final class ImageGenerator
 	/**
 	 * Fill in the URL address of the image (it can also be relative) with parameters
 	 * so that the path is valid for ImageGenerator.
+	 * If an absolute URL is passed from another domain, the image is automatically downloaded and cached.
+	 * External images are retrieved via an internal proxy.
 	 *
 	 * @param array{
 	 *    w?: int,
@@ -50,22 +52,37 @@ final class ImageGenerator
 	public static function from(?string $url, array $params): string
 	{
 		if ($url === null || $url === '#INVALID_IMAGE#') {
-			$url = Url::get()->getBaseUrl() . '/placeholder.png';
+			$url = sprintf('%s/placeholder.png', Url::get()->getBaseUrl());
+		} elseif (preg_match('~^https?://.+\.([a-zA-Z]+)$~', $url, $parser) === 1) {
+			$p = @parse_url($url); // @ - is escalated to exception
+			if ($p === false) {
+				throw new \InvalidArgumentException(sprintf('Malformed or unsupported URI "%s".', $url));
+			}
+			if (Url::get()->getUrlScript()->getHost() === rawurldecode($p['host'] ?? '')) {
+				return self::from($p['path'] ?? '', $params);
+			}
+			$urlHash = md5($url);
+			Proxy::save($url, $urlHash);
+			$url = sprintf('%s/image-generator-proxy/%s.%s', Url::get()->getBaseUrl(), $urlHash, $parser[1] ?? 'png');
 		} elseif (preg_match(
 			'/^(?<prefix>.*\/)(?<filename>.+?)(__[^_]*?_[a-z0-9]{6})(?<suffix>\.[^.]+)$/',
 			$url,
 			$parser,
 		) === 1) {
-			$url = $parser['prefix'] . $parser['filename'] . $parser['suffix'];
+			$url = sprintf('%s%s%s', $parser['prefix'], $parser['filename'], $parser['suffix']);
 		}
 		if (preg_match('/(?<prefix>.*\/)?(?<filename>[\w._-]+)\.(?<suffix>.+)$/', $url, $parser) === 1) {
 			$param = Helper::paramsToString($params);
-			return ($parser['prefix'] ?? '') . $parser['filename']
-				. ($param !== '' ? '__' . $param . '_' . Helper::generateHash($param) : '')
-				. '.' . $parser['suffix'];
+
+			return sprintf('%s%s%s.%s',
+				$parser['prefix'] ?? '',
+				$parser['filename'],
+				$param !== '' ? sprintf('__%s_%s', $param, Helper::generateHash($param)) : '',
+				$parser['suffix'],
+			);
 		}
 
-		throw new \InvalidArgumentException('Invalid URL "' . $url . '" given.');
+		throw new \InvalidArgumentException(sprintf('Invalid URL "%s" given.', $url));
 	}
 
 
