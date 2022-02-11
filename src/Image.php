@@ -117,47 +117,6 @@ final class Image
 	}
 
 
-	/**
-	 * Load and return binary image data from the specified URL, or throw an exception.
-	 *
-	 * @param int $minSize Minimum allowed image size in Bytes (when the code is 200, but the image is still smaller, it throws an exception).
-	 */
-	private function getImageContentFromUrl(string $url, int $timeout = 1, int $minSize = 20): string
-	{
-		curl_setopt_array(
-			$ch = curl_init(),
-			[
-				CURLOPT_URL => $url,
-				CURLOPT_HEADER => false,
-				CURLOPT_MAXREDIRS => 2,
-				CURLOPT_TIMEOUT => $timeout,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_SSL_VERIFYPEER => false,
-				CURLOPT_USERAGENT => $_SERVER['HTTP_USER_AGENT']
-					?? 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 '
-					. '(KHTML, like Gecko) Chrome/23.0.1271.1 Safari/537.11',
-			],
-		);
-
-		$return = (string) curl_exec($ch);
-		$httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		$httpStatusCode = is_numeric($httpStatusCode) ? (int) $httpStatusCode : 500;
-		curl_close($ch);
-
-		if ($httpStatusCode !== 200 || $return === '' || \strlen($return) < $minSize) {
-			throw new \RuntimeException(
-				sprintf('Image on URL does not exist (HTTP code: #%d, responseSize: %d)',
-					$httpStatusCode,
-					strlen($return),
-				),
-				$httpStatusCode === 0 ? 404 : $httpStatusCode,
-			);
-		}
-
-		return $return;
-	}
-
-
 	private function waitForFileInCache(): void
 	{
 		for ($i = 0; $i <= 5; $i++) {
