@@ -107,15 +107,16 @@ final class ImageRequest
 		$return = null;
 		if (is_dir($absoluteFileDirPath) === true) {
 			foreach ((new \DirectoryIterator($absoluteFileDirPath)) as $item) {
-				assert($item instanceof \DirectoryIterator);
 				if (in_array($item->getFilename(), ['.', '..'], true)) {
 					continue;
 				}
+				$realPath = $item->getRealPath();
+				assert(is_string($realPath));
 				if (
 					($return === null || $item->getExtension() === $this->extension)
-					&& pathinfo($item->getRealPath())['filename'] === $this->basename
+					&& pathinfo($realPath)['filename'] === $this->basename
 				) {
-					$return = $item->getRealPath();
+					$return = $realPath;
 				}
 			}
 		}
