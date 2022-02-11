@@ -57,6 +57,19 @@ Alternatively, we can just add the path to the image via the `n:src` parameter a
 <img n:src="/animal/cat.png, [w => 200]">
 ```
 
+Request (internal/external) image variant URL
+---------------------------------------------
+
+You can request an image to be rendered simply by calling the `ImageGenerator::from()` method, passing the disk path (relative, absolute, or URL) and the image editing parameters.
+
+The URL can also lead to an external domain. In this case, the image will be automatically downloaded by the robot. A copy of the downloaded image is cached on the local disk and manipulated in the usual way. In order to render the external image to your domain, the resulting image must be returned via an internal PHP Proxy, which is available by default at the URI `image-generator-proxy/*`.
+
+For example:
+
+```php
+$newUrl = ImageGenerator::from($url, ['w' => 100, 'h' => 380]);
+```
+
 How to process image request
 ----------------------------
 
