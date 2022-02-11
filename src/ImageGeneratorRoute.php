@@ -122,7 +122,7 @@ final class ImageGeneratorRoute
 
 		[, $dirname, $basename, $params, $hash, $extension] = $routeParser;
 		if ($dirname === 'image-generator-proxy') {
-			$proxyPath = Proxy::getStoragePath($basename, pathinfo($url)['extension']);
+			$proxyPath = Proxy::getStoragePath($basename, pathinfo($url)['extension'] ?? null);
 			if (preg_match('~^(.+)/([^/.]+?)\.[a-zA-Z]+$~', $proxyPath, $proxyPathParser) === 1) {
 				$dirname = $proxyPathParser[1] ?? '';
 				$basename = $proxyPathParser[2] ?? '';
