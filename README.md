@@ -36,9 +36,9 @@ Extension via Linux libraries
 
 To use the advanced features, you need to install the following Linux libraries on the server (optional):
 
-- SmartCrop | [Stáhnout](https://github.com/jwagner/smartcrop.js/)
-- OptiPNG | [Stáhnout](https://github.com/imagemin/imagemin-optipng)
-- Jpegoptim | [Stáhnout](https://github.com/tjko/jpegoptim)
+- [SmartCrop](https://github.com/jwagner/smartcrop.js/)
+- [OptiPNG](https://github.com/imagemin/imagemin-optipng)
+- [Jpegoptim](https://github.com/tjko/jpegoptim)
 
 Using the generator in a template
 ---------------------------------
