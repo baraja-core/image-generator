@@ -69,8 +69,8 @@ final class ImageRequest
 		} else {
 			$basename = $this->basename;
 		}
-		if (str_starts_with($this->dirname, '/')) {
-			return sprintf('_proxy/%s.%s', $basename, $this->extension);
+		if ($this->isDirnameAbsolutePath()) {
+			return sprintf('_proxy/%s', $basename);
 		}
 
 		return sprintf('%s/%s.%s', $this->dirname, $basename, $this->extension);
@@ -80,7 +80,7 @@ final class ImageRequest
 	public function getAbsoluteFileDirPath(): string
 	{
 		$filePath = $this->getFilePath();
-		if (str_starts_with($this->dirname, '/')) {
+		if ($this->isDirnameAbsolutePath()) {
 			$absoluteFileDirPath = sprintf('%s/', dirname($filePath));
 		} else {
 			$absoluteFileDirPath = (string) preg_replace(
@@ -122,5 +122,11 @@ final class ImageRequest
 		}
 
 		return $return;
+	}
+
+
+	public function isDirnameAbsolutePath(): bool
+	{
+		return str_starts_with($this->dirname, '/') || preg_match('/^[A-Z]:/', $this->dirname) === 1;
 	}
 }
