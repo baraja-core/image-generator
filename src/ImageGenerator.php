@@ -65,7 +65,7 @@ final class ImageGenerator
 			Proxy::save($url, $urlHash);
 			$url = sprintf('%s/image-generator-proxy/%s.%s', Url::get()->getBaseUrl(), $urlHash, $parser[1] ?? 'png');
 		} elseif (preg_match(
-			'/^(?<prefix>.*\/)(?<filename>.+?)(__[^_]*?_[a-z0-9]{6})(?<suffix>\.[^.]+)$/',
+			'/^(?<prefix>.*[\/\\\\])(?<filename>.+?)(__[^_]*?_[a-z0-9]{6})(?<suffix>\.[^.]+)$/',
 			$url,
 			$parser,
 		) === 1) {
