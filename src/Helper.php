@@ -87,6 +87,7 @@ final class Helper
 			}
 		} elseif ($recursive) {
 			foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($cachePathDirName)) as $info) {
+				assert($info instanceof \SplFileInfo);
 				if (is_file($info->getPathname())) {
 					$files[] = $info->getPathname();
 				}
