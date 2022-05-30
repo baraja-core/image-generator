@@ -25,8 +25,18 @@ final class ImageGeneratorExtension extends CompilerExtension
 		return Expect::structure(
 			[
 				'debugMode' => Expect::bool(false),
-				'defaultBackgroundColor' => Expect::arrayOf(Expect::int())->max(3),
-				'cropPoints' => Expect::arrayOf(Expect::arrayOf(Expect::int())),
+				'defaultBackgroundColor' => Expect::arrayOf(Expect::int())->max(3)->default([255, 255, 255]),
+				'cropPoints' => Expect::arrayOf(Expect::arrayOf(Expect::int()))->default([
+					480 => [910, 30, 1845, 1150],
+					600 => [875, 95, 1710, 910],
+					768 => [975, 130, 1743, 660],
+					1024 => [805, 110, 1829, 850],
+					1280 => [615, 63, 1895, 800],
+					1440 => [535, 63, 1975, 800],
+					1680 => [410, 63, 2090, 800],
+					1920 => [320, 63, 2240, 800],
+					2560 => [0, 63, 2560, 800],
+				]),
 			],
 		)->castTo('array');
 	}
@@ -39,27 +49,14 @@ final class ImageGeneratorExtension extends CompilerExtension
 
 		$builder->addDefinition($this->prefix('image'))
 			->setFactory(Image::class)
-			->addSetup('?->setDebugMode(?)', ['@self', $config['debugMode'] ?? false]);
+			->addSetup('?->setDebugMode(?)', ['@self', $config['debugMode']]);
 
 		$builder->addDefinition($this->prefix('config'))
 			->setFactory(Config::class)
-			->setArguments(
-				[
-					'defaultBackgroundColor' => $config['defaultBackgroundColor'] ?? [255, 255, 255],
-					'cropPoints' => $config['cropPoints'] ?? [
-						480 => [910, 30, 1845, 1150],
-						600 => [875, 95, 1710, 910],
-						768 => [975, 130, 1743, 660],
-						1024 => [805, 110, 1829, 850],
-						1280 => [615, 63, 1895, 800],
-						1440 => [535, 63, 1975, 800],
-						1680 => [410, 63, 2090, 800],
-						1920 => [320, 63, 2240, 800],
-						2560 => [0, 63, 2560, 800],
-					],
-				],
-			);
-
+			->setArguments([
+				'defaultBackgroundColor' => $config['defaultBackgroundColor'],
+				'cropPoints' => $config['cropPoints'],
+			]);
 
 		$builder->addDefinition($this->prefix('imageGenerator'))
 			->setFactory(ImageGenerator::class);
@@ -69,9 +66,7 @@ final class ImageGeneratorExtension extends CompilerExtension
 		$latte->getResultDefinition()
 			->addSetup(
 				'?->onCompile[] = function ($engine) { ' . Macros::class . '::install($engine->getCompiler()); }',
-				[
-					'@self',
-				],
+				['@self'],
 			);
 	}
 
