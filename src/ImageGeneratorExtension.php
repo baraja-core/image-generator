@@ -7,7 +7,7 @@ namespace Baraja\ImageGenerator;
 
 use Baraja\Url\Url;
 use Nette\Application\Application;
-use Nette\Bridges\ApplicationLatte\ILatteFactory;
+use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\DI\CompilerExtension;
 use Nette\DI\Definitions\FactoryDefinition;
 use Nette\DI\Definitions\ServiceDefinition;
@@ -63,7 +63,7 @@ final class ImageGeneratorExtension extends CompilerExtension
 			->setFactory(ImageGenerator::class);
 
 		/** @var FactoryDefinition $latte */
-		$latte = $builder->getDefinitionByType(ILatteFactory::class);
+		$latte = $builder->getDefinitionByType(LatteFactory::class);
 		$latte->getResultDefinition()
 			->addSetup(
 				'?->onCompile[] = function ($engine) { ' . Macros::class . '::install($engine->getCompiler()); }',
