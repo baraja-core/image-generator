@@ -15,6 +15,9 @@ use Nette\PhpGenerator\ClassType;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
 
+/**
+ * @method array{debugMode: bool, defaultBackgroundColor: array<int, int>, cropPoints: array<int, array<int, int>>} getConfig()
+ */
 final class ImageGeneratorExtension extends CompilerExtension
 {
 	public function getConfigSchema(): Schema
@@ -31,7 +34,6 @@ final class ImageGeneratorExtension extends CompilerExtension
 
 	public function beforeCompile(): void
 	{
-		/** @var mixed[] $config */
 		$config = $this->getConfig();
 		$builder = $this->getContainerBuilder();
 
@@ -62,8 +64,8 @@ final class ImageGeneratorExtension extends CompilerExtension
 		$builder->addDefinition($this->prefix('imageGenerator'))
 			->setFactory(ImageGenerator::class);
 
-		/** @var FactoryDefinition $latte */
 		$latte = $builder->getDefinitionByType(LatteFactory::class);
+		assert($latte instanceof FactoryDefinition);
 		$latte->getResultDefinition()
 			->addSetup(
 				'?->onCompile[] = function ($engine) { ' . Macros::class . '::install($engine->getCompiler()); }',
@@ -80,11 +82,11 @@ final class ImageGeneratorExtension extends CompilerExtension
 			return;
 		}
 
-		/** @var ServiceDefinition $application */
 		$application = $this->getContainerBuilder()->getDefinitionByType(Application::class);
+		assert($application instanceof ServiceDefinition);
 
-		/** @var ServiceDefinition $image */
 		$image = $this->getContainerBuilder()->getDefinitionByType(Image::class);
+		assert($image instanceof ServiceDefinition);
 
 		$class->getMethod('initialize')->addBody(
 			'// image generator.' . "\n"
