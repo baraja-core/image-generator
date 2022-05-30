@@ -25,7 +25,7 @@
 		"baraja-core/path-resolvers": "^1.0"
 	},
 	"require-dev": {
-		"latte/latte": "^2.5",
+		"latte/latte": "^2.11",
 		"tracy/tracy": "^2.8",
 		"phpstan/phpstan": "^1.0",
 		"phpstan/extension-installer": "^1.1",
