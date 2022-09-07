@@ -133,10 +133,11 @@ final class ImageGeneratorRoute
 			session_write_close();
 			ignore_user_abort(true);
 			$image->run(new ImageRequest($dirname, $basename, $params, $hash, $extension));
-		} catch (\ErrorException $e) {
-			Helper::setHttpStatus404();
-			self::renderPlaceholder($params, $e->getMessage());
 		} catch (\Throwable $e) {
+			if ($e instanceof \ErrorException || $e->getCode() === 404) {
+				Helper::setHttpStatus404();
+				self::renderPlaceholder($params, $e->getMessage());
+			}
 			$error = self::isDebugRequest() === true
 				? $e->getMessage()
 				: (string) preg_replace('/^[^:]*?:\s+/', '', $e->getMessage());

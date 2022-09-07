@@ -25,7 +25,7 @@
 		"baraja-core/path-resolvers": "^1.0"
 	},
 	"require-dev": {
-		"latte/latte": "^2.5",
+		"latte/latte": "^2.11",
 		"tracy/tracy": "^2.8",
 		"phpstan/phpstan": "^1.0",
 		"phpstan/extension-installer": "^1.1",
@@ -45,5 +45,10 @@
 			"vendor/bin/phpstan analyse src -c phpstan.neon --level 9 --no-progress"
 		]
 	},
-	"minimum-stability": "stable"
+	"minimum-stability": "stable",
+	"config": {
+		"allow-plugins": {
+			"phpstan/extension-installer": true
+		}
+	}
 }

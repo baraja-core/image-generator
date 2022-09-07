@@ -174,8 +174,8 @@ final class ImageGenerator
 				'image/jpeg' => 'jpg',
 			];
 
-			/** @var resource $fInfo */
 			$fInfo = finfo_open(FILEINFO_MIME_TYPE);
+			assert($fInfo !== false);
 			$contentType = (string) finfo_file($fInfo, $path);
 			if (isset($formatMap[$contentType]) === false) {
 				return false;
