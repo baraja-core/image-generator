@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Baraja\ImageGenerator;
 
 
+use Nette\Utils\Image as NetteImage;
+
 final class SmartCrop
 {
 	public function __construct(
@@ -13,7 +15,7 @@ final class SmartCrop
 	}
 
 
-	public function crop(string $path, ?int $width, ?int $height, \Nette\Utils\Image $image): void
+	public function crop(string $path, ?int $width, ?int $height, NetteImage $image): void
 	{
 		if ($width === null) {
 			$width = $height < 1 ? 150 : $height;
