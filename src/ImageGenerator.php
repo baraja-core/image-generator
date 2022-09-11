@@ -59,8 +59,10 @@ final class ImageGenerator
 				throw new \InvalidArgumentException(sprintf('Malformed or unsupported URI "%s".', $url));
 			}
 			if (Url::get()->getUrlScript()->getHost() === rawurldecode($p['host'] ?? '')) {
-				return sprintf('%s://%s%s', $p['scheme'], $p['host'], $p['port'] !== 80 ? ':' . $p['port'] : '')
-					. self::from($p['path'] ?? '', $params);
+				return (isset($p['scheme'], $p['host'], $p['port'])
+					? sprintf('%s://%s%s', $p['scheme'], $p['host'], $p['port'] !== 80 ? ':' . $p['port'] : '')
+					: ''
+				) . self::from($p['path'] ?? '', $params);
 			}
 			$urlHash = md5($url);
 			Proxy::save($url, $urlHash);
