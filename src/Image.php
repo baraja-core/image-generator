@@ -248,6 +248,7 @@ final class Image
 	{
 		$md5CacheFile = md5_file($this->cachePath);
 		$pathInfo = pathinfo($this->cachePath);
+		assert(isset($pathInfo['dirname']));
 		$pathInfoList = scandir($pathInfo['dirname'], 1);
 		foreach (is_array($pathInfoList) ? $pathInfoList : [] as $item) {
 			if (
@@ -259,14 +260,14 @@ final class Image
 				&& $parser['md5'] === $md5CacheFile
 			) {
 				unlink($this->cachePath);
-				$this->canonicalPath = $pathInfo['dirname'] . '/' . $parser['filename'];
+				$this->canonicalPath = sprintf('%s/%s', $pathInfo['dirname'], $parser['filename']);
 				symlink(basename($this->canonicalPath), $this->cachePath);
 
 				return;
 			}
 		}
 
-		FileSystem::write($this->cachePath . '_' . $md5CacheFile . '.md5', '');
+		FileSystem::write(sprintf('%s_%s.md5', $this->cachePath, $md5CacheFile), '');
 	}
 
 
