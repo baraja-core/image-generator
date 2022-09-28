@@ -324,11 +324,8 @@ final class ImageGenerator
 			}
 
 			if (
-				($width / $imageSize[0] < 1.3 && $height / $imageSize[1] < 1.3)
-				&& (
-					($width === $imageSize[0] && $height >= $imageSize[1])
-					|| ($height === $imageSize[1] && $width >= $imageSize[0])
-				) === false
+				!($width === $imageSize[0] && $height >= $imageSize[1])
+				&& !($height === $imageSize[1] && $width >= $imageSize[0])
 			) {
 				$this->saveNetteImage(
 					$absolutePath,
