@@ -21,11 +21,11 @@ final class ImageGeneratorRequest
 
 	private ?int $height = null;
 
-	private bool $breakPoint = false;
+	private bool $breakPoint;
 
-	private ?string $scale = self::SCALE_DEFAULT;
+	private ?string $scale;
 
-	private ?string $crop = self::CROP_SMART;
+	private ?string $crop;
 
 	private ?int $px = null;
 
@@ -49,7 +49,7 @@ final class ImageGeneratorRequest
 			$this->setWidth($params['width']);
 			$this->setHeight($params['height']);
 		} else {
-			throw new \InvalidArgumentException('Width or height params are required.');
+			throw new \InvalidArgumentException('Width and height params are required.');
 		}
 		$this->breakPoint = $params['breakPoint'] ?? false;
 		$this->scale = $params['scale'] ?? null;
@@ -82,22 +82,23 @@ final class ImageGeneratorRequest
 	{
 		preg_match('/^w(\d+)/i', $params, $w);
 		preg_match('/^(w\d+)?h(\d+)/i', $params, $h);
+		$cast = static fn(string $value): ?string => $value !== '' ? $value : null;
 
 		return new self([
-			'width' => (isset($w[1]) && $w[1]) ? (int) $w[1] : 0,
-			'height' => (isset($h[2]) && $h[2]) ? (int) $h[2] : 0,
+			'width' => (int) ($w[1] ?? 0),
+			'height' => (int) ($h[2] ?? 0),
 			'breakPoint' => str_contains($params, '-br'),
 			'scale' => preg_match('/-sc([rca])/i', $params, $sc) === 1
-				? ((isset($sc[1]) && $sc[1]) ? (string) $sc[1] : null)
+				? $cast($sc[1] ?? '')
 				: null,
 			'crop' => preg_match('/-c([a-z]{2,5})/', $params, $c) === 1
-				? ((isset($c[1]) && $c[1]) ? (string) $c[1] : null)
+				? $cast($c[1] ?? '')
 				: null,
 			'px' => preg_match('/-px(\d+)/i', $params, $px) === 1
-				? ((isset($px[1]) && $px[1]) ? (int) $px[1] : null)
+				? (int) $cast($px[1] ?? '')
 				: null,
 			'py' => preg_match('/-py(\d+)/i', $params, $py) === 1
-				? ((isset($py[1]) && $py[1]) ? (int) $py[1] : null)
+				? (int) $cast($py[1] ?? '')
 				: null,
 		]);
 	}
