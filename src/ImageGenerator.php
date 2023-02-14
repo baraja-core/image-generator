@@ -175,12 +175,15 @@ final class ImageGenerator
 				'image/gif' => 'gif',
 				'image/png' => 'png',
 				'image/jpeg' => 'jpg',
+				'image/webp' => 'webp',
 			];
 
 			$fInfo = finfo_open(FILEINFO_MIME_TYPE);
 			assert($fInfo !== false);
 			$contentType = (string) finfo_file($fInfo, $path);
 			if (isset($formatMap[$contentType]) === false) {
+				trigger_error(sprintf('Content type "%s" is not supported now.', $contentType));
+
 				return false;
 			}
 			$format = $formatMap[$contentType];
@@ -190,15 +193,16 @@ final class ImageGenerator
 			'jpg' => 'imagecreatefromjpeg',
 			'jpeg' => 'imagecreatefromjpeg',
 			'gif' => 'imagecreatefromgif',
+			'webp' => 'imagecreatefromwebp',
 		];
 
 		$format = strtolower($format);
 		if (isset($formatToFunction[$format]) === false) {
-			throw new \InvalidArgumentException(
-				'Format "' . $format . '" is not supported. Did you mean "'
-				. implode('", "', array_keys($formatToFunction))
-				. '"?',
-			);
+			throw new \InvalidArgumentException(sprintf(
+				'Format "%s" is not supported. Did you mean "%s"?',
+				$format,
+				implode('", "', array_keys($formatToFunction)),
+			));
 		}
 		$function = $formatToFunction[$format];
 		if (Helper::functionIsAvailable($function) === false) {
