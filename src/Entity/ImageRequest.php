@@ -64,16 +64,20 @@ final class ImageRequest
 	 */
 	public function getFileSuffix(bool $withParams = false): string
 	{
-		if ($withParams) {
-			$basename = $this->getFileName();
-		} else {
-			$basename = $this->basename;
-		}
+		$basename = $withParams
+			? $this->getFileName()
+			: $this->basename;
+
 		if ($this->isDirnameAbsolutePath()) {
 			return sprintf('_proxy/%s', $basename);
 		}
 
-		return sprintf('%s/%s.%s', $this->dirname, $basename, $this->extension);
+		return sprintf(
+			'%s/%s.%s',
+			$this->dirname,
+			preg_replace('/^(.+)\.([^.]+)$/', '$1', $basename),
+			$this->extension,
+		);
 	}
 
 
