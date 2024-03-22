@@ -16,7 +16,7 @@ final class ImageGeneratorRoute
 	. '(?<basename>[^\/]+)'
 	. '__(?<params>(?:w\d+|h\d+)[^\/]+)'
 	. '_(?<hash>[a-z0-9]{6})'
-	. '\.(?<extension>(?:[jJ][pP][eE]?[gG]|[pP][nN][gG]|[gG][iI][fF]))/';
+	. '\.(?<extension>(?:[jJ][pP][eE]?[gG]|[pP][nN][gG]|[wW][eE][bB][pP]|[gG][iI][fF]))/';
 
 
 	public static function renderPlaceholder(string $params, ?string $message = null): void
