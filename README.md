@@ -10,94 +10,94 @@
 
 # Image Generator
 
-Full automatic ImageGenerator for creating dynamic content by URL.
+Full automatic ImageGenerator for creating dynamic image content by URL parameters.
 
-- Easily generate thousands of image types dynamically
+- Easily generate thousands of image variants dynamically on-demand
 - Set dozens of configuration parameters and customize the output
 - Mature tools to work comfortably in Latte templates and on the backend
 - All generated images are cached and protected by checksum validation
 
-## :bulb: Hlavni principy
+## :bulb: Key Principles
 
-- **Dynamicke generovani obrazku** - Obrazky se generuji na zaklade parametru v URL, bez potreby rucniho vytvareni variant
-- **Automaticke cachovani** - Vygenerovane obrazky se ukladaji do cache, pri dalsim pozadavku se servuji primo bez zateze PHP
-- **Ochrana checksumem** - Kazdy pozadavek obsahuje hash, ktery zabranu neautorizovanemu generovani obrazku
-- **Zachovani originalu** - Zdrojovy obrazek zustava nezmeneny, vsechny transformace se provadeji na kopiich
-- **Podpora externich URL** - Obrazky z externich domen jsou automaticky stahovany a cachovany lokalne
-- **Integrace s Nette Framework** - Nativni podpora Latte maker a DIC extension
-- **Optimalizace vystupu** - Automaticka komprese obrazku pomoci jpegoptim a optipng
+- **Dynamic image generation** - Images are generated based on URL parameters, no need to manually create variants
+- **Automatic caching** - Generated images are stored in cache; subsequent requests are served directly without PHP overhead
+- **Checksum protection** - Every request contains a hash that prevents unauthorized image generation
+- **Original preservation** - Source images remain unchanged; all transformations are performed on copies
+- **External URL support** - Images from external domains are automatically downloaded and cached locally
+- **Nette Framework integration** - Native support for Latte macros and DIC extension
+- **Output optimization** - Automatic image compression using jpegoptim and optipng
 
-## :building_construction: Architektura a komponenty
+## :building_construction: Architecture and Components
 
-### Hlavni komponenty
+### Main Components
 
-| Komponenta | Popis |
-|------------|-------|
-| `ImageGenerator` | Jadro knihovny pro transformaci obrazku (resize, crop, scale) |
-| `Image` | Orchestrator pozadavku - overuje hash, pripravuje cesty, vola generator |
-| `ImageGeneratorRoute` | Router pro zachyceni pozadavku na dynamicke obrazky |
-| `ImageGeneratorExtension` | DIC extension pro integraci s Nette Framework |
-| `Macros` | Latte makra pro pohodlne pouziti v sablonacha |
-| `Proxy` | Stahovani a cachovani externich obrazku |
-| `SmartCrop` | Inteligentni orezavani obrazku (detekce dulezitych oblasti) |
-| `Helper` | Staticke utility funkce (hash, cache invalidace, detekce prostredi) |
-| `Config` | Konfiguracni entita (barva pozadi, breakpointy) |
-| `Optimizer` | Rozhrani pro optimalizaci obrazku s vychozi implementaci |
+| Component | Description |
+|-----------|-------------|
+| `ImageGenerator` | Core library for image transformation (resize, crop, scale) |
+| `Image` | Request orchestrator - verifies hash, prepares paths, calls generator |
+| `ImageGeneratorRoute` | Router for capturing dynamic image requests |
+| `ImageGeneratorExtension` | DIC extension for Nette Framework integration |
+| `Macros` | Latte macros for convenient template usage |
+| `Proxy` | Downloads and caches external images |
+| `SmartCrop` | Intelligent image cropping (detects important regions) |
+| `Helper` | Static utility functions (hash, cache invalidation, environment detection) |
+| `Config` | Configuration entity (background color, breakpoints) |
+| `Optimizer` | Interface for image optimization with default implementation |
 
-### Architektura systemu
+### System Architecture
 
 ```
-+------------------+     +-------------------+     +------------------+
++------------------+     +--------------------+     +------------------+
 |   HTTP Request   |---->| ImageGeneratorRoute|---->|      Image       |
-| (URL s parametry)|     | (pattern matching)|     | (orchestrator)   |
-+------------------+     +-------------------+     +------------------+
-                                                           |
-                         +----------------+                |
-                         |     Helper     |<---------------+
-                         | (hash verify)  |                |
-                         +----------------+                v
-                                                  +------------------+
-+------------------+     +-------------------+    |  ImageGenerator  |
-|      Cache       |<----|    Optimizer      |<---|  (transformace)  |
-| (www/_cache/)    |     | (jpegoptim/optpng)|    +------------------+
-+------------------+     +-------------------+             |
-                                                           v
-                         +-------------------+    +------------------+
-                         |     SmartCrop     |<---|   Nette\Image    |
-                         | (inteligentni)    |    |   (GD wrapper)   |
-                         +-------------------+    +------------------+
+| (URL with params)|     | (pattern matching) |     |  (orchestrator)  |
++------------------+     +--------------------+     +------------------+
+                                                            |
+                         +----------------+                 |
+                         |     Helper     |<----------------+
+                         | (hash verify)  |                 |
+                         +----------------+                 v
+                                                   +------------------+
++------------------+     +--------------------+    |  ImageGenerator  |
+|      Cache       |<----|     Optimizer      |<---|  (transformation)|
+| (www/_cache/)    |     | (jpegoptim/optipng)|    +------------------+
++------------------+     +--------------------+             |
+                                                            v
+                         +--------------------+    +------------------+
+                         |     SmartCrop      |<---|   Nette\Image    |
+                         |   (intelligent)    |    |   (GD wrapper)   |
+                         +--------------------+    +------------------+
 ```
 
-### Tok zpracovani pozadavku
+### Request Processing Flow
 
 ```
-1. Pozadavek na URL: /images/cat__w200h150_abc123.jpg
+1. Request URL: /images/cat__w200h150_abc123.jpg
                            |
-2. ImageGeneratorRoute zachyti pattern a extrahuje:
+2. ImageGeneratorRoute captures pattern and extracts:
    - dirname: images
    - basename: cat
    - params: w200h150
    - hash: abc123
    - extension: jpg
                            |
-3. Image overuje hash (Helper::generateHash)
-   - Pokud nesouhlasi a je debug mode -> redirect na spravnou URL
-   - Pokud nesouhlasi a je production -> vrati chybu
+3. Image verifies hash (Helper::generateHash)
+   - If mismatch and debug mode -> redirect to correct URL
+   - If mismatch and production -> return error
                            |
-4. Kontrola cache (www/_cache/images/cat__w200h150_abc123.jpg)
-   - Existuje -> servuje primo z cache
-   - Neexistuje -> pokracuje ke generovani
+4. Cache check (www/_cache/images/cat__w200h150_abc123.jpg)
+   - Exists -> serve directly from cache
+   - Not exists -> proceed to generation
                            |
-5. ImageGenerator provede transformaci:
-   - Zkopiruje zdrojovy soubor do temp
-   - Aplikuje pozadovane transformace (crop/scale/resize)
-   - Optimalizuje vystup
-   - Presune do cache
+5. ImageGenerator performs transformation:
+   - Copy source file to temp
+   - Apply requested transformations (crop/scale/resize)
+   - Optimize output
+   - Move to cache
                            |
-6. Odpoved klientovi s HTTP hlavickami pro cachovani
+6. Response to client with HTTP caching headers
 ```
 
-## :package: Instalace
+## :package: Installation
 
 It's best to use [Composer](https://getcomposer.org) for installation, and you can also find the package on
 [Packagist](https://packagist.org/packages/baraja-core/image-generator) and
@@ -111,20 +111,20 @@ $ composer require baraja-core/image-generator
 
 You can use the package manually by creating an instance of the internal classes, or register a DIC extension to link the services directly to the Nette Framework.
 
-### Pozadavky
+### Requirements
 
 - PHP 8.0+
 - PHP extensions: `gd`, `session`, `json`, `fileinfo`, `curl`
 - Nette Framework 3.0+
 
-### Registrace extension (Nette)
+### Extension Registration (Nette)
 
 ```neon
 extensions:
     imageGenerator: Baraja\ImageGenerator\ImageGeneratorExtension
 ```
 
-### Konfigurace
+### Configuration
 
 ```neon
 imageGenerator:
@@ -142,58 +142,58 @@ imageGenerator:
         2560: [0, 63, 2560, 800]
 ```
 
-| Parametr | Typ | Vychozi | Popis |
-|----------|-----|---------|-------|
-| `debugMode` | bool | false | V debug modu se pri chybnem hashi presmeruje na spravnou URL |
-| `defaultBackgroundColor` | array | [255, 255, 255] | RGB barva pozadi pro PNG obrazky s pruhlednosti |
-| `cropPoints` | array | prednastavene | Breakpointy pro responsivni orezavani |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `debugMode` | bool | false | In debug mode, incorrect hash redirects to correct URL |
+| `defaultBackgroundColor` | array | [255, 255, 255] | RGB background color for PNG images with transparency |
+| `cropPoints` | array | predefined | Breakpoints for responsive cropping |
 
-## :wrench: Rozsireni pomoci Linux knihoven
+## :wrench: Extension via Linux Libraries
 
-Pro pokrocile funkce je mozne nainstalovat na server nasledujici knihovny (volitelne):
+For advanced features, you can install the following libraries on the server (optional):
 
-- [SmartCrop](https://github.com/jwagner/smartcrop.js/) - Inteligentni orezavani s detekci dulezitych casti obrazku
-- [OptiPNG](https://github.com/imagemin/imagemin-optipng) - Optimalizace PNG souboru
-- [Jpegoptim](https://github.com/tjko/jpegoptim) - Optimalizace JPEG souboru
+- [SmartCrop](https://github.com/jwagner/smartcrop.js/) - Intelligent cropping with detection of important image regions
+- [OptiPNG](https://github.com/imagemin/imagemin-optipng) - PNG file optimization
+- [Jpegoptim](https://github.com/tjko/jpegoptim) - JPEG file optimization
 
 ```bash
 # Ubuntu/Debian
 sudo apt-get install optipng jpegoptim
 
-# SmartCrop (vyzaduje Node.js)
+# SmartCrop (requires Node.js)
 sudo npm install -g smartcrop-cli
 ```
 
-## :rocket: Zakladni pouziti
+## :rocket: Basic Usage
 
-### Format URL
+### URL Format
 
-Vsechny obrazky zpracovane ImageGeneratorem maji nasledujici format:
+All images processed by ImageGenerator have the following format:
 
 ```
 <basePath>/<dir>/<fileName>__<parameters>_<hash>.<format>
 ```
 
-Priklad:
+Example:
 ```
 /images/monalisa__w200h128_abc123.jpg
 ```
 
-Tento pozadavek nacte obrazek `/images/monalisa.jpg` a aplikuje:
-- Sirka: 200px
-- Vyska: 128px
-- Hash: abc123 (overeni checksumu)
+This request loads image `/images/monalisa.jpg` and applies:
+- Width: 200px
+- Height: 128px
+- Hash: abc123 (checksum verification)
 
-### Pouziti v PHP kodu
+### Usage in PHP Code
 
 ```php
 use Baraja\ImageGenerator\ImageGenerator;
 
-// Zakladni pouziti - resize
+// Basic usage - resize
 $url = ImageGenerator::from('/images/cat.png', ['w' => 200, 'h' => 150]);
-// Vysledek: /images/cat__w200h150_abc123.png
+// Result: /images/cat__w200h150_abc123.png
 
-// S dalsimi parametry
+// With additional parameters
 $url = ImageGenerator::from('/images/photo.jpg', [
     'w' => 800,
     'h' => 600,
@@ -201,62 +201,62 @@ $url = ImageGenerator::from('/images/photo.jpg', [
     'c' => 'mc',  // crop middle-center
 ]);
 
-// Externi obrazek (automaticky se stahne a zproxuje)
+// External image (automatically downloaded and proxied)
 $url = ImageGenerator::from('https://example.com/image.jpg', ['w' => 300, 'h' => 200]);
 ```
 
-### Pouziti v Latte sablonach
+### Usage in Latte Templates
 
-ImageGenerator obsahuje nativni adapter pro Latte templating system.
+ImageGenerator includes a native adapter for the Latte templating system.
 
-#### Makro `{imageGenerator}`
+#### Macro `{imageGenerator}`
 
-Kompletni vykresleni `<img>` tagu:
+Complete `<img>` tag rendering:
 
 ```latte
 {imageGenerator '/images/cat.png', ['w' => 200, 'h' => 150]}
-{* Vysledek: <img src="/images/cat__w200h150_abc123.png" alt="Image"> *}
+{* Result: <img src="/images/cat__w200h150_abc123.png" alt="Image"> *}
 
-{* S alternativnim popisem *}
-{imageGenerator '/images/cat.png', ['w' => 200, 'h' => 150, 'alt' => 'Kocka']}
-{* Vysledek: <img src="/images/cat__w200h150_abc123.png" alt="Kocka"> *}
+{* With alternative description *}
+{imageGenerator '/images/cat.png', ['w' => 200, 'h' => 150, 'alt' => 'Cat']}
+{* Result: <img src="/images/cat__w200h150_abc123.png" alt="Cat"> *}
 ```
 
-#### Makro `{img}`
+#### Macro `{img}`
 
-Vraci pouze URL adresu:
+Returns URL only:
 
 ```latte
-<img src="{img '/images/cat.png', ['w' => 200, 'h' => 150]}" alt="Kocka">
+<img src="{img '/images/cat.png', ['w' => 200, 'h' => 150]}" alt="Cat">
 ```
 
-#### Atribut `n:src`
+#### Attribute `n:src`
 
-Pro vlastni logiku vykresleni:
+For custom rendering logic:
 
 ```latte
-<img n:src="/images/cat.png, [w => 200, h => 150]" alt="Kocka">
+<img n:src="/images/cat.png, [w => 200, h => 150]" alt="Cat">
 ```
 
-## :gear: Parametry transformace
+## :gear: Transformation Parameters
 
-Parametry se zapisuji za nazev souboru za dvojite podtrzitko (`__`) a oddeluji se pomlckou.
+Parameters are written after the filename following double underscores (`__`) and separated by hyphens.
 
-### Sirka a vyska (width & height)
+### Width and Height
 
-Parametry `w` a `h` nastavuji rozmery obrazku v pixelech.
+Parameters `w` and `h` set the image dimensions in pixels.
 
 ```
 monalisa__w200h128_hash.jpg
 ```
 
-- Minimalni hodnota: 16px
-- Maximalni hodnota: 3000px
-- Pokud je zadana pouze jedna dimenze, druha se dopocita podle pomeru stran
+- Minimum value: 16px
+- Maximum value: 3000px
+- If only one dimension is specified, the other is calculated based on aspect ratio
 
-### Orezavani podle hrany (crop)
+### Edge Cropping (crop)
 
-Parametr `-c` urcuje, odkud bude obrazek orezan.
+Parameter `-c` determines from where the image will be cropped.
 
 ```
 TL  TC  TR
@@ -264,54 +264,54 @@ ML  MC  MR
 BL  BC  BR
 ```
 
-| Hodnota | Pozice |
-|---------|--------|
-| `tl` | Top-Left (levy horni roh) |
-| `tc` | Top-Center (horni stred) |
-| `tr` | Top-Right (pravy horni roh) |
-| `ml` | Middle-Left (levy stred) |
-| `mc` | Middle-Center (stred) |
-| `mr` | Middle-Right (pravy stred) |
-| `bl` | Bottom-Left (levy dolni roh) |
-| `bc` | Bottom-Center (dolni stred) |
-| `br` | Bottom-Right (pravy dolni roh) |
-| `sm` | Smart Crop (inteligentni orezani) |
+| Value | Position |
+|-------|----------|
+| `tl` | Top-Left |
+| `tc` | Top-Center |
+| `tr` | Top-Right |
+| `ml` | Middle-Left |
+| `mc` | Middle-Center |
+| `mr` | Middle-Right |
+| `bl` | Bottom-Left |
+| `bc` | Bottom-Center |
+| `br` | Bottom-Right |
+| `sm` | Smart Crop (intelligent cropping) |
 
-Priklad:
+Example:
 ```
-cat__w200h150-ctl_hash.jpg   # Orez z leveho horniho rohu
-cat__w200h150-csm_hash.jpg   # Inteligentni orez
+cat__w200h150-ctl_hash.jpg   # Crop from top-left corner
+cat__w200h150-csm_hash.jpg   # Smart crop
 ```
 
-### Zpusob zmeny rozmeru (scale)
+### Scale Mode
 
-Parametr `-sc` urcuje, jak se obrazek prizpusobi novym rozmerum.
+Parameter `-sc` determines how the image adapts to new dimensions.
 
-| Hodnota | Nazev | Popis |
-|---------|-------|-------|
-| `r` | Ratio | Zachova pomer stran, vetsi strana urcuje hlavni rozmer |
-| `c` | Cover | Vyplni co nejvetsi plochu v danem obdelniku podle pomeru stran |
-| `a` | Absolute | Obrazek se roztahne/stlaci na presne rozmery (muze zpusobit deformaci) |
+| Value | Name | Description |
+|-------|------|-------------|
+| `r` | Ratio | Preserves aspect ratio, larger side determines main dimension |
+| `c` | Cover | Fills as much area as possible in the given rectangle according to aspect ratio |
+| `a` | Absolute | Image is stretched/compressed to exact dimensions (may cause distortion) |
 
-Priklad:
+Example:
 ```
 photo__w800h600-scr_hash.jpg   # Scale ratio
 photo__w800h600-scc_hash.jpg   # Scale cover
 photo__w800h600-sca_hash.jpg   # Scale absolute
 ```
 
-### Breakpointy
+### Breakpoints
 
-Parametr `-br` aktivuje orezani podle preddefinovanych breakpointu. Pri pouziti tohoto parametru jsou ostatni ignorovany a breakpoint se urcuje podle sirky (`w`).
+Parameter `-br` activates cropping according to predefined breakpoints. When using this parameter, others are ignored and the breakpoint is determined by width (`w`).
 
 ```
 banner__w1920h800-br_hash.jpg
 ```
 
-Vychozi breakpointy:
+Default breakpoints:
 
-| Breakpoint | Oblast orezani [x1, y1, x2, y2] |
-|------------|----------------------------------|
+| Breakpoint | Crop Area [x1, y1, x2, y2] |
+|------------|----------------------------|
 | 480 | [910, 30, 1845, 1150] |
 | 600 | [875, 95, 1710, 910] |
 | 768 | [975, 130, 1743, 660] |
@@ -322,115 +322,115 @@ Vychozi breakpointy:
 | 1920 | [320, 63, 2240, 800] |
 | 2560 | [0, 63, 2560, 800] |
 
-### Procentualni orezavani
+### Percentage Cropping
 
-Parametry `-px` a `-py` umoznuji orezani podle procentualniho posunu od okraje.
+Parameters `-px` and `-py` allow cropping based on percentage offset from the edge.
 
-- `px` - procentualni posun podle osy X (0-100)
-- `py` - procentualni posun podle osy Y (0-100)
+- `px` - percentage offset along X axis (0-100)
+- `py` - percentage offset along Y axis (0-100)
 
 ```
 main-page__w1680h800-px75-py0_hash.jpg
 ```
 
-Obrazek `main-page.jpg` bude orezan na 1680x800 s orezem shora na 75% a zleva na 0%.
+Image `main-page.jpg` will be cropped to 1680x800 with crop from top at 75% and from left at 0%.
 
-### Kombinace parametru
+### Parameter Combination
 
-Parametry lze (temer) libovolne kombinovat. Jednotlive parametry se oddeluji pomlckou.
+Parameters can be (almost) arbitrarily combined. Individual parameters are separated by hyphens.
 
 ```
 /images/photo__w1680h800-px75-py0_hash.jpg
 /images/banner__w800h600-scr-cmc_hash.jpg
 ```
 
-## :arrows_counterclockwise: Konverze formatu
+## :arrows_counterclockwise: Format Conversion
 
-Pokud potrebujete zmenit format obrazku (napr. z PNG na JPG), staci zmenit priponu v URL. Generator automaticky najde zdrojovy soubor a provede konverzi.
+If you need to change the image format (e.g., from PNG to JPG), simply change the extension in the URL. The generator automatically finds the source file and performs the conversion.
 
 ```php
-// Zdrojovy soubor: /images/logo.png
+// Source file: /images/logo.png
 $url = ImageGenerator::from('/images/logo.jpg', ['w' => 200, 'h' => 100]);
-// Vysledek: PNG se prevede na JPG a ulozi do cache
+// Result: PNG is converted to JPG and stored in cache
 ```
 
-Podporovane formaty: `jpg`, `jpeg`, `png`, `gif`, `webp`
+Supported formats: `jpg`, `jpeg`, `png`, `gif`, `webp`
 
 ## :floppy_disk: Cache
 
-### Umisteni cache
+### Cache Location
 
-Cache se nachazi v adresari `/www/_cache/` a zachovava stejnou adresarovou strukturu jako zdrojove adresare.
+The cache is located in the `/www/_cache/` directory and maintains the same directory structure as the source directories.
 
 ```
 www/
 ├── images/
-│   └── cat.png              # Zdrojovy obrazek
+│   └── cat.png              # Source image
 └── _cache/
     └── images/
-        └── cat__w200h150_abc123.png   # Cachovany obrazek
+        └── cat__w200h150_abc123.png   # Cached image
 ```
 
-### Deduplikace obrazku
+### Image Deduplication
 
-Pokud je vygenerovany obrazek obsahove shodny s jinym jiz existujicim, vytvori se symlink pro usporu diskoveho prostoru.
+If a generated image is content-identical to another already existing one, a symlink is created to save disk space.
 
-### Invalidace cache
+### Cache Invalidation
 
 ```php
 use Baraja\ImageGenerator\Helper;
 
-// Invalidace konkretniho obrazku
+// Invalidate specific image
 $count = Helper::invalidateCache('/images/cat.png');
 
-// Invalidace celeho adresare
+// Invalidate entire directory
 $count = Helper::invalidateCache('/images/');
 
-// Rekurzivni invalidace (vcetne podadresaru)
+// Recursive invalidation (including subdirectories)
 $count = Helper::invalidateCache('/images/', null, true);
 
-// S explicitnim zadanim www adresare
+// With explicit www directory path
 $count = Helper::invalidateCache('/images/cat.png', '/var/www/html/www');
 ```
 
-Metoda vraci pocet smazanych souboru.
+The method returns the number of deleted files.
 
-## :globe_with_meridians: Externi obrazky (Proxy)
+## :globe_with_meridians: External Images (Proxy)
 
-ImageGenerator podporuje zpracovani obrazku z externich domen. Obrazky jsou automaticky stazeny, ulozeny lokalne a dale zpracovany.
+ImageGenerator supports processing images from external domains. Images are automatically downloaded, stored locally, and then processed.
 
 ```php
 $url = ImageGenerator::from('https://example.com/photo.jpg', ['w' => 400, 'h' => 300]);
-// Obrazek se stahne, ulozi do www/_cache/_proxy/ a vrati se URL pres interni proxy
+// Image is downloaded, stored in www/_cache/_proxy/ and URL is returned via internal proxy
 ```
 
-Externi obrazky jsou dostupne pres endpoint `image-generator-proxy/*`.
+External images are accessible via the `image-generator-proxy/*` endpoint.
 
-### Jak proxy funguje
+### How Proxy Works
 
-1. Externi URL se zahashuje pomoci MD5
-2. Obrazek se stahne a ulozi do `www/_cache/_proxy/{prvni-3-znaky-hash}/{hash}.{format}`
-3. Vsechny dalsi pozadavky se servuji z lokalniho uloziste
+1. External URL is hashed using MD5
+2. Image is downloaded and stored in `www/_cache/_proxy/{first-3-chars-of-hash}/{hash}.{format}`
+3. All subsequent requests are served from local storage
 
-## :chart_with_upwards_trend: Optimalizace
+## :chart_with_upwards_trend: Optimization
 
-### Automaticka kvalita
+### Automatic Quality
 
-Generator automaticky aplikuje optimalizaci kvality na vsechny vystupni obrazky:
+The generator automatically applies quality optimization to all output images:
 
-- Obrazky vetsi nez 480 000 pixelu (napr. 800x600): kvalita 85%
-- Mensi obrazky: kvalita 95%
+- Images larger than 480,000 pixels (e.g., 800x600): 85% quality
+- Smaller images: 95% quality
 
-### Externi optimalizatory
+### External Optimizers
 
-Pokud jsou k dispozici, pouziji se externi nastroje:
+If available, external tools are used:
 
-- **jpegoptim** pro JPEG soubory
-- **optipng** pro PNG soubory
+- **jpegoptim** for JPEG files
+- **optipng** for PNG files
 
-### Vlastni optimizer
+### Custom Optimizer
 
-Muzete implementovat vlastni optimizer:
+You can implement your own optimizer:
 
 ```php
 use Baraja\ImageGenerator\Optimizer\Optimizer;
@@ -439,12 +439,12 @@ class MyOptimizer implements Optimizer
 {
     public function optimize(string $absolutePath, int $quality = 85): void
     {
-        // Vase optimalizacni logika
+        // Your optimization logic
     }
 }
 ```
 
-A zaregistrovat ho v DIC:
+And register it in DIC:
 
 ```neon
 services:
@@ -454,33 +454,33 @@ imageGenerator:
     optimizer: @MyOptimizer
 ```
 
-## :shield: Bezpecnost
+## :shield: Security
 
-### Hash validace
+### Hash Validation
 
-Kazdy pozadavek na dynamicky obrazek obsahuje 6-znakovy hash, ktery se generuje deterministicky z parametru. Toto zabranuje:
+Every request for a dynamic image contains a 6-character hash that is deterministically generated from parameters. This prevents:
 
-- Generovani nahodnych kombinaci parametru (utok na server)
-- Manipulaci s URL bez znalosti hashovaciho algoritmu
+- Generation of random parameter combinations (server attack)
+- URL manipulation without knowledge of the hashing algorithm
 
-### Debug mode
+### Debug Mode
 
-V debug modu (pouze lokalni vyvoj) se pri chybnem hashi provede presmerovani na spravnou URL. V produkcnim prostredi se vrati chyba.
+In debug mode (local development only), incorrect hash redirects to the correct URL. In production environment, an error is returned.
 
-### Limity rozmeru
+### Dimension Limits
 
-- Minimalni rozmer: 16px
-- Maximalni rozmer: 3000px
+- Minimum dimension: 16px
+- Maximum dimension: 3000px
 
-Hodnoty mimo tyto limity jsou automaticky upraveny.
+Values outside these limits are automatically adjusted.
 
 ## :test_tube: Placeholder
 
-Pokud dojde k chybe pri generovani obrazku, vygeneruje se placeholder s informacemi:
+If an error occurs during image generation, a placeholder is generated with information:
 
-- Zobrazuje pozadovane rozmery
-- V debug modu zobrazuje chybovou zpravu
-- Ma sedy podklad pro snadnou identifikaci
+- Displays requested dimensions
+- In debug mode displays error message
+- Has gray background for easy identification
 
 ## :book: API Reference
 
@@ -490,17 +490,17 @@ Pokud dojde k chybe pri generovani obrazku, vygeneruje se placeholder s informac
 public static function from(?string $url, array $params): string
 ```
 
-Generuje URL pro ImageGenerator.
+Generates URL for ImageGenerator.
 
-**Parametry:**
-- `$url` - Cesta k obrazku (relativni, absolutni nebo URL)
-- `$params` - Pole parametru:
-  - `w` nebo `width` - sirka v pixelech
-  - `h` nebo `height` - vyska v pixelech
+**Parameters:**
+- `$url` - Path to image (relative, absolute, or URL)
+- `$params` - Array of parameters:
+  - `w` or `width` - width in pixels
+  - `h` or `height` - height in pixels
   - `sc` - scale mode (`r`, `c`, `a`)
-  - `c` nebo `cr` - crop position
+  - `c` or `cr` - crop position
 
-**Vraci:** URL string s parametry a hashem
+**Returns:** URL string with parameters and hash
 
 ### Helper::invalidateCache()
 
@@ -512,14 +512,14 @@ public static function invalidateCache(
 ): int
 ```
 
-Invaliduje cache pro dany obrazek nebo adresar.
+Invalidates cache for given image or directory.
 
-**Parametry:**
-- `$path` - Relativni cesta od www adresare
-- `$wwwDir` - Absolutni cesta k www adresari (volitelne, autodetekce)
-- `$recursive` - Rekurzivni prohledavani podadresaru
+**Parameters:**
+- `$path` - Relative path from www directory
+- `$wwwDir` - Absolute path to www directory (optional, autodetected)
+- `$recursive` - Recursive search in subdirectories
 
-**Vraci:** Pocet smazanych souboru
+**Returns:** Number of deleted files
 
 ### Helper::generateHash()
 
@@ -527,13 +527,13 @@ Invaliduje cache pro dany obrazek nebo adresar.
 public static function generateHash(string $params, int $iterator = 0): string
 ```
 
-Generuje 6-znakovy hash pro validaci parametru.
+Generates 6-character hash for parameter validation.
 
-## :bulb: Tipy a triky
+## :bulb: Tips and Tricks
 
-### Responzivni obrazky
+### Responsive Images
 
-Pro responzivni web muzete generovat vice variant:
+For responsive websites, you can generate multiple variants:
 
 ```latte
 <picture>
@@ -543,7 +543,7 @@ Pro responzivni web muzete generovat vice variant:
 </picture>
 ```
 
-### Lazy loading s placeholdery
+### Lazy Loading with Placeholders
 
 ```latte
 <img
@@ -554,19 +554,19 @@ Pro responzivni web muzete generovat vice variant:
 >
 ```
 
-### Prehled parametru v URL
+### URL Parameter Overview
 
-| Parametr | Format | Priklad | Popis |
-|----------|--------|---------|-------|
-| `w` | w{cislo} | w200 | Sirka v px |
-| `h` | h{cislo} | h150 | Vyska v px |
+| Parameter | Format | Example | Description |
+|-----------|--------|---------|-------------|
+| `w` | w{number} | w200 | Width in px |
+| `h` | h{number} | h150 | Height in px |
 | `-sc` | -sc{r\|c\|a} | -scr | Scale mode |
-| `-c` | -c{pozice} | -cmc | Crop pozice |
-| `-br` | -br | -br | Pouzit breakpointy |
-| `-px` | -px{0-100} | -px50 | Procentualni posun X |
-| `-py` | -py{0-100} | -py25 | Procentualni posun Y |
+| `-c` | -c{position} | -cmc | Crop position |
+| `-br` | -br | -br | Use breakpoints |
+| `-px` | -px{0-100} | -px50 | Percentage offset X |
+| `-py` | -py{0-100} | -py25 | Percentage offset Y |
 
-## :bust_in_silhouette: Autor
+## :bust_in_silhouette: Author
 
 **Jan Barasek**
 - Website: [https://baraja.cz](https://baraja.cz)
